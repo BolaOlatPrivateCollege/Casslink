@@ -328,20 +328,20 @@
       };
 
       try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+      const res = await fetch(SCRIPT_URL, {
+  method: "POST",
+  body: JSON.stringify(payload)
+});
 
-        const data = await res.json().catch(() => null);
+const data = await res.json();
 
-        if (!res.ok || !data || data.ok !== true) {
-          setStatus("Save failed", "error");
-          return;
-        }
+if (!data || data.ok !== true) {
+  setStatus("Save failed", "error");
+  return;
+}
 
-        setStatus("Saved", "success");
+setStatus("Saved", "success");
+
       } catch (e) {
         setStatus("Connection error", "error");
       }
