@@ -62,7 +62,7 @@
         <div style="text-align:center;">
           <label><b>Database Sync</b></label><br />
           <div style="margin-top:10px;"><span id="syncStatus">Ready</span></div>
-          <div class="hint">Auto save after a short pause</div>
+          <div class="hint">Loads saved scores after class selection</div>
         </div>
       </div>
 
@@ -86,7 +86,7 @@
   <script>
     "use strict";
 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySWLUBN6FSnnETuVvBNaNUSZ3OdmAYydzme9ZI1LS4NQxi6XBuXECAn2Hf5JN7rtjl0g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAoB6B3k341uKbHfTI-YyaqC24lwswTar-BWlsF6wYPlIL0ne3HfsBFw6P3gLlWGgN0Q/exec";
 
     const PERMISSIONS = {
       "QTlLMg==": { sub: "English Language", arm: "Senior" },
@@ -137,6 +137,7 @@
     let activeStaff = "";
     let allowedArm = "";
     const rowTimers = new WeakMap();
+    let loadingScores = false;
 
     const elAuth = document.getElementById("authSection");
     const elMain = document.getElementById("mainPortal");
@@ -239,7 +240,9 @@
       if (!cls || !studentDatabase[cls]) return;
 
       studentDatabase[cls].forEach(s => elBody.appendChild(buildRow(s)));
-      setStatus("Ready", "success");
+
+      setStatus("Loading saved scores", "syncing");
+      fetchScoresAndFill(cls, elSubject.textContent);
     }
 
     function validateRow(row) {
@@ -283,6 +286,8 @@
     }
 
     function processChange(row) {
+      if (loadingScores) return;
+
       const totalEl = row.querySelector(".row-total");
       const valid = validateRow(row);
 
@@ -304,7 +309,7 @@
       rowTimers.set(row, timerId);
     }
 
-    async function syncToCloud(row, total) {
+    function syncToCloud(row, total) {
       if (!elClass.value) {
         setStatus("Choose class", "error");
         return;
@@ -312,7 +317,7 @@
 
       setStatus("Saving", "syncing");
 
-      const payload = {
+      var payload = {
         staff: activeStaff,
         className: elClass.value,
         subject: elSubject.textContent,
@@ -323,27 +328,123 @@
         t2: Number(row.querySelector(".t2").value) || 0,
         extcur: Number(row.querySelector(".extcur").value) || 0,
         classint: Number(row.querySelector(".classint").value) || 0,
-        note: Number(row.querySelector(".note").value) || 0,
-        total: Number(total) || 0
+        note: Number(row.querySelector(".note").value) || 0
       };
 
-      try {
-      const res = await fetch(SCRIPT_URL, {
-  method: "POST",
-  body: JSON.stringify(payload)
-});
+      jsonpSave(payload);
+    }
 
-const data = await res.json();
+    function jsonpSave(p) {
+      var cbName = "cb_save_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
 
-if (!data || data.ok !== true) {
-  setStatus("Save failed", "error");
-  return;
-}
+      window[cbName] = function (resp) {
+        cleanup();
+        if (resp && resp.ok === true) {
+          setStatus("Saved", "success");
+          return;
+        }
+        setStatus("Save failed", "error");
+      };
 
-setStatus("Saved", "success");
-
-      } catch (e) {
+      var timer = setTimeout(function () {
+        cleanup();
         setStatus("Connection error", "error");
+      }, 12000);
+
+      var qs =
+        "action=save" +
+        "&callback=" + encodeURIComponent(cbName) +
+        "&staff=" + encodeURIComponent(p.staff) +
+        "&className=" + encodeURIComponent(p.className) +
+        "&subject=" + encodeURIComponent(p.subject) +
+        "&firstname=" + encodeURIComponent(p.firstname) +
+        "&lastname=" + encodeURIComponent(p.lastname) +
+        "&code=" + encodeURIComponent(p.code) +
+        "&t1=" + encodeURIComponent(String(p.t1)) +
+        "&t2=" + encodeURIComponent(String(p.t2)) +
+        "&extcur=" + encodeURIComponent(String(p.extcur)) +
+        "&classint=" + encodeURIComponent(String(p.classint)) +
+        "&note=" + encodeURIComponent(String(p.note));
+
+      var s = document.createElement("script");
+      s.src = SCRIPT_URL + "?" + qs;
+      s.async = true;
+      s.onerror = function () {
+        cleanup();
+        setStatus("Connection error", "error");
+      };
+
+      document.head.appendChild(s);
+
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      }
+    }
+
+    function fetchScoresAndFill(className, subject) {
+      loadingScores = true;
+
+      var cbName = "cb_fetch_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+      window[cbName] = function (resp) {
+        cleanup();
+
+        if (!resp || resp.ok !== true || !resp.records) {
+          loadingScores = false;
+          setStatus("No saved scores", "success");
+          return;
+        }
+
+        var records = resp.records;
+
+        Array.from(elBody.querySelectorAll("tr")).forEach(tr => {
+          var code = tr.querySelector(".h-code").value;
+          var rec = records[code];
+          if (!rec) return;
+
+          tr.querySelector(".t1").value = rec.t1;
+          tr.querySelector(".t2").value = rec.t2;
+          tr.querySelector(".extcur").value = rec.extcur;
+          tr.querySelector(".classint").value = rec.classint;
+          tr.querySelector(".note").value = rec.note;
+
+          var totalEl = tr.querySelector(".row-total");
+          totalEl.textContent = Number(rec.total || 0).toFixed(1);
+        });
+
+        loadingScores = false;
+        setStatus("Loaded", "success");
+      };
+
+      var timer = setTimeout(function () {
+        cleanup();
+        loadingScores = false;
+        setStatus("Load error", "error");
+      }, 12000);
+
+      var qs =
+        "action=fetch" +
+        "&callback=" + encodeURIComponent(cbName) +
+        "&className=" + encodeURIComponent(className) +
+        "&subject=" + encodeURIComponent(subject);
+
+      var s = document.createElement("script");
+      s.src = SCRIPT_URL + "?" + qs;
+      s.async = true;
+      s.onerror = function () {
+        cleanup();
+        loadingScores = false;
+        setStatus("Load error", "error");
+      };
+
+      document.head.appendChild(s);
+
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (s && s.parentNode) s.parentNode.removeChild(s);
       }
     }
 
