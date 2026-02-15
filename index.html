@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BOPC Staff - CA Portal</title>
+  <style>
+    :root { --blue:#0d47a1; --gold:#fbc02d; --red:#d32f2f; --green:#2e7d32; --light:#f4f7f6; }
+    body { font-family: "Segoe UI", Tahoma, sans-serif; background: var(--light); padding: 20px; margin: 0; }
+    .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
+    .header { text-align: center; border-bottom: 4px solid var(--blue); margin-bottom: 25px; padding-bottom: 10px; }
+    .hidden { display: none; }
+    #authSection { background:#fffde7; padding: 50px; border-radius: 10px; text-align: center; border: 2px dashed var(--blue); max-width: 420px; margin: 50px auto; }
+    .dashboard-controls { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; background:#f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #ddd; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+    th { background: var(--blue); color:#fff; padding: 15px; font-size: 13px; text-transform: uppercase; }
+    td { border: 1px solid #eee; padding: 10px; text-align: center; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    input[type="number"] { width: 70px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; text-align: center; font-weight: 700; font-size: 16px; }
+    .total-box { font-weight: 900; color: var(--blue); background:#e3f2fd; padding: 10px; border-radius: 6px; font-size: 18px; display:inline-block; min-width: 60px; }
+    .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color:#fff; transition: 0.2s; }
+    .logout-btn { background: var(--red); position: absolute; right: 20px; top: 20px; font-size: 12px; }
+    #syncStatus { font-weight: 800; padding: 8px 15px; border-radius: 20px; background:#eee; font-size: 14px; display:inline-block; }
+    .status-syncing { background:#fff9c4; color:#f57f17; }
+    .status-success { background:#c8e6c9; color: var(--green); }
+    .status-error { background:#ffcdd2; color: var(--red); }
+    .pill { padding:10px; font-weight: 900; color: var(--blue); background:#e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 5px; }
+    select { width:100%; padding: 10px; border: 1px solid var(--blue); border-radius: 8px; margin-top: 5px; font-weight: 800; }
+    .hint { color:#666; font-size: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button id="logoutBtn" class="btn logout-btn hidden" type="button">LOGOUT</button>
+
+    <div class="header">
+      <h1 style="color:var(--blue); margin:0;">BOLA OLAT PRIVATE COLLEGE</h1>
+      <p style="margin:5px 0; font-weight: 900; color:#555;">STAFF CA PORTAL</p>
+    </div>
+
+    <div id="authSection">
+      <h2 style="color:var(--blue); margin-top:0;">Teacher Login</h2>
+      <input type="password" id="staffPin" placeholder="Enter Subject PIN"
+        style="padding:15px; font-size:20px; border:2px solid var(--blue); width:100%; text-align:center; border-radius: 10px; box-sizing: border-box;" />
+      <div class="hint">Use your subject PIN only</div>
+      <br />
+      <button id="loginBtn" class="btn" style="background:var(--blue); width:100%;" type="button">ACCESS MY CLASSES</button>
+    </div>
+
+    <div id="mainPortal" class="hidden">
+      <div class="dashboard-controls">
+        <div>
+          <label><b>Authorized Subject</b></label>
+          <div id="subjectLabel" class="pill"></div>
+        </div>
+
+        <div>
+          <label><b>Select Assigned Class</b></label>
+          <select id="classSelect"></select>
+        </div>
+
+        <div style="text-align:center;">
+          <label><b>Database Sync</b></label><br />
+          <div style="margin-top:10px;"><span id="syncStatus">Ready</span></div>
+          <div class="hint">Auto save after a short pause</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left; width: 30%;">Student Name and ID</th>
+            <th>T1 (10)</th>
+            <th>T2 (10)</th>
+            <th>Ext.Cur (10)</th>
+            <th>Class Int (5)</th>
+            <th>Note (5)</th>
+            <th style="background:var(--gold); color:#000;">Total (40)</th>
+          </tr>
+        </thead>
+        <tbody id="studentTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmmQt7x-W7COauqXsrkT50q2oF73rR2orhtZPVbEfI-tEebeXretfksrV8gHaDjRfRew/exec";
+
+    const PERMISSIONS = {
+      "QTlLMg==": { sub: "English Language", arm: "Senior" },
+      "UTNGOA==": { sub: "Mathematics", arm: "Senior" },
+      "QjdNNA==": { sub: "Digital Tech", arm: "Senior" },
+      "WjJMOQ==": { sub: "Citizenship Ed", arm: "Senior" },
+      "TTRENw==": { sub: "Biology", arm: "Senior" },
+      "WDlQMg==": { sub: "Geography", arm: "Senior" },
+      "SDZLNQ==": { sub: "Chemistry", arm: "Senior" },
+      "TjFTOA==": { sub: "Physics", arm: "Senior" },
+      "RTdXMw==": { sub: "Further Maths", arm: "Senior" },
+      "SjRROQ==": { sub: "Agric Science", arm: "Senior" },
+      "UDVUNw==": { sub: "Economics", arm: "Senior" },
+      "RjlCNA==": { sub: "Accounting", arm: "Senior" },
+      "SzNFNg==": { sub: "Commerce", arm: "Senior" },
+      "VzVNOQ==": { sub: "Literature", arm: "Senior" },
+      "QTZONA==": { sub: "Yoruba", arm: "Senior" },
+      "RzhDMw==": { sub: "Government", arm: "Senior" },
+      "UjJKNw==": { sub: "CRS/IRS", arm: "Senior" },
+
+      "QjVTOQ==": { sub: "Mathematics", arm: "Junior" },
+      "WTRLNg==": { sub: "English Studies", arm: "Junior" },
+      "UjVDMQ==": { sub: "Basic Tech", arm: "Junior" },
+      "QzJSNg==": { sub: "Business Studies", arm: "Junior" },
+      "UzdIMg==": { sub: "CRS/IRS", arm: "Junior" },
+      "VjlUMQ==": { sub: "Digital Tech", arm: "Junior" },
+      "TTdQMw==": { sub: "French", arm: "Junior" },
+      "RTJMOA==": { sub: "Int. Science", arm: "Junior" },
+      "UTZENA==": { sub: "History", arm: "Junior" },
+      "SDFXNw==": { sub: "PHE", arm: "Junior" },
+      "VDNGOA==": { sub: "Pre-Vocational", arm: "Junior" },
+      "VDhBNg==": { sub: "Social/Citizen", arm: "Junior" },
+      "TDhWMQ==": { sub: "Social Studies", arm: "Junior" },
+      "RDFYOA==": { sub: "Yoruba", arm: "Junior" },
+
+      "MDA5OQ==": { sub: "Principal/Admin", arm: "Master" }
+    };
+
+    const studentDatabase = {
+      "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
+      "Basic 8": [{"n":"AMANDA OGUNSHOLA","c":"BOC1150"},{"n":"SEMILORE BADEJO","c":"BOC1151"},{"n":"VICTOR CHUKWU","c":"BOC1152"},{"n":"SEMILORE IGE","c":"BOC1153"},{"n":"VALOUR CHUKWU","c":"BOC1154"},{"n":"EMMANUEL AYOADE","c":"BOC1155"},{"n":"DAVID AMEH","c":"BOC1156"},{"n":"HAMDIYAH OSENI","c":"BOC1157"},{"n":"TUNMISE AKANNI","c":"BOC1158"},{"n":"SOPHIA ANWANA","c":"BOC1159"},{"n":"MORAYO OTUKOYA","c":"BOC1160"},{"n":"MIRACLE OLUWASEUN","c":"BOC1161"},{"n":"QOYUM KUYE","c":"BOC1162"},{"n":"JOMILOJU AKANDE","c":"BOC1163"},{"n":"OLUWATOBILOBA LAWAL","c":"BOC1164"},{"n":"ABDULKABIR OKUSAGA","c":"BOC1165"},{"n":"AZIMAH OLADELE","c":"BOC1166"},{"n":"ABDULRAHEEM OKUSAGA","c":"BOC1167"},{"n":"ANNABEL EMEKA","c":"BOC1183"},{"n":"ANUOLUWAPO OLAYIWOLA","c":"BOC1184"},{"n":"ADERINSOLA AKALA","c":"BOC1185"},{"n":"MOZIDAT KAZEEM","c":"BOC1186"},{"n":"ALIYAH ALADE","c":"BOC1187"},{"n":"CHIEMERIE NWAJIOBIEME","c":"BOC1188"},{"n":"DARASIMI OGUNDELE","c":"BOC1189"},{"n":"EMMANUELLA CHECHE","c":"BOC1190"},{"n":"DASOLA OGUNDELE","c":"BOC1193"},{"n":"RODIAH BANIRE","c":"BOC1194"},{"n":"MMESOMA OKAFOR","c":"BOC1195"},{"n":"AYOMIDE SHOAGA","c":"BOC1197"},{"n":"CHIBUZOR MICHAEL","c":"BOC1198"},{"n":"MERCY OKONKWO","c":"BOC1199"},{"n":"ESTHER ORJI","c":"BOC1201"},{"n":"NAZARETH OLANIRAN","c":"BOC1202"},{"n":"ANUOLUWAPO OGUNSADE","c":"BOC1203"},{"n":"EMMANUEL SOSANYA","c":"BOC1204"},{"n":"FARIDAH YUSUF","c":"BOC1205"},{"n":"ABDUL-BASIT ADEBAYO","c":"BOC1207"},{"n":"Desire Babalola","c":"BOC1211"},{"n":"Abidemi Oyebanji","c":"BOC1214"}],
+      "Basic 9": [{"n":"DAVID ANDREW","c":"BOC1100"},{"n":"TOYIB AKINDE","c":"BOC1101"},{"n":"NIMOTALLAHI ONANUSI","c":"BOC1105"},{"n":"TANTOLUWA HARRISON","c":"BOC1111"},{"n":"MORAWO FOLASHADE","c":"BOC1113"},{"n":"JAMES OMOLAFE","c":"BOC1102"},{"n":"ENIOLA OSHIN","c":"BOC1127"},{"n":"AFOLABI IDOWU","c":"BOC1121"},{"n":"OLUWADARASIMI DADA","c":"BOC1118"},{"n":"OLUWATOBILOBA AKINRINMADE","c":"BOC1116"},{"n":"DEBORAH AGOSU","c":"BOC1117"},{"n":"WINIFRED DANIEL","c":"BOC1126"},{"n":"AKINSEYE Kolade","c":"BOC1119"},{"n":"MOYOSADE ADEYEMO","c":"BOC1123"},{"n":"DANIEL OLUWAJOBA","c":"BOC1103"},{"n":"ISREAL OLALEGBIN","c":"BOC1107"},{"n":"FUAD ARIGBABUWO","c":"BOC1120"},{"n":"PRUDENT DICKSON","c":"BOC1136"},{"n":"CHIBUKEM CHUKWU","c":"BOC1135"},{"n":"DAVID FELIX","c":"BOC1122"},{"n":"IREOLUWA ADETORO","c":"BOC1106"},{"n":"Onyekachukwu Dike","c":"BOC1139"},{"n":"Rihanat Kolawole","c":"BOC1145"},{"n":"Oluwasekemi Ajayi","c":"BOC1109"},{"n":"OLAIDE OLUPITAN","c":"BOC1169"},{"n":"CHIAMAKA IKEJIOFOR","c":"BOC1170"},{"n":"FERANMI AKINBODE","c":"BOC1220"},{"n":"TEMITOPE ESSIEN","c":"BOC1221"},{"n":"Chukwuemeka Ezeorah","c":"BOC1223"},{"n":"Ademide Oguntayo","c":"BOC1225"},{"n":"MODESIRE-OLUWA OLUWASEUN","c":"BOC1228"},{"n":"AKOREDE KOLAPO","c":"BOC1232"},{"n":"CHIDIEBERE OMUMU","c":"BOC1248"},{"n":"EMMANUEL NNANNA","c":"BOC1260"}],
+      "Senior 1": [{"n":"JOY EKELEDO","c":"BOC1086"},{"n":"BADIROT HAMZA","c":"BOC1037"},{"n":"ISRAEL IFEANYI","c":"BOC1048"},{"n":"FIFUNMI IGBALAJOBI","c":"BOC1088"},{"n":"MIRACLE UBILAMA","c":"BOC1089"},{"n":"AYOOLA KASUMU","c":"BOC1053"},{"n":"DAVID NWEKE","c":"BOC1057"},{"n":"IFECHUKWU NWOSU","c":"BOC1090"},{"n":"PRECIOUS OGBOCHUKWU","c":"BOC1064"},{"n":"ABDULLAHI OGEDE","c":"BOC1054"},{"n":"BUSOLA OGUNDELE","c":"BOC1051"},{"n":"MOYINOLUWA OGUNYOYE","c":"BOC1031"},{"n":"SOMTOCHUKWU OKAFOR","c":"BOC1047"},{"n":"DANIEL ONU","c":"BOC1038"},{"n":"EMMANUEL OSSAI","c":"BOC1027"},{"n":"ESTHER SHOYOYE","c":"BOC1092"},{"n":"MOYINOLUWA WHINGAN","c":"BOC1041"},{"n":"BRYAN OGUNSHOLA","c":"BOC1128"},{"n":"BASIRAT ADEDAPO","c":"BOC1045"},{"n":"KUYE ABDULQUDDUS","c":"BOC1040"},{"n":"MUNIRAT AGUNBIADE-KOSOKO","c":"BOC1030"},{"n":"ABDULLATEEF ALAKA","c":"BOC1072"},{"n":"OPEYEMI AKINNIBOSUN","c":"BOC1171"},{"n":"ZAINAB NASIRU","c":"BOC1173"},{"n":"ABRAHAM EMEKA","c":"BOC1209"},{"n":"NIFEMI ADETORO","c":"BOC1022"},{"n":"LEKAN BABATUNDE","c":"BOC1029"},{"n":"UMAR BALOGUN","c":"BOC1039"},{"n":"NOJIAT DAWODU","c":"BOC1043"},{"n":"HABEEB DAUDA","c":"BOC1052"},{"n":"FATHIA AJAYI","c":"BOC1083"},{"n":"ENIOLA AKINRINMADE","c":"BOC1084"},{"n":"DEBORAH BABATIMILEYIN","c":"BOC1085"},{"n":"GODSWILL JAMES","c":"BOC1236"},{"n":"SHAMSONDEEN ODUGUWA","c":"BOC1238"},{"n":"WALIYAH MUSA","c":"BOC1243"},{"n":"CHIDINMA OGUGUA","c":"BOC1244"},{"n":"TAOFEEK OLUDAISI","c":"BOC1245"},{"n":"AL-AMEEN DAWODU","c":"BOC1253"},{"n":"OLUWAPAMILERIN IGE","c":"BOC1254"},{"n":"SEMILORE MUSEDIK","c":"BOC1262"},{"n":"ALIYAH OLADEJI","c":"BOC1266"},{"n":"TEMILOLUWA KASALI","c":"BOC1269"},{"n":"ROFIAT ADENEKAN","c":"BOC1275"}],
+      "Senior 2": [{"n":"ADEMOLA ADEAGBO","c":"BOC997"},{"n":"MOHAMMED ADEBAYO","c":"BOC1082"},{"n":"AYOMIDE ADELANWA","c":"BOC1093"},{"n":"MOJOLA ADEYEMO","c":"BOC1004"},{"n":"AYOMIKUN AKINMOYE","c":"BOC1025"},{"n":"BOLUWATIFE BALOGUN","c":"BOC1018"},{"n":"JABACHIMMA CHUKWU","c":"BOC1079"},{"n":"GRACE EKELEDO","c":"BOC1087"},{"n":"TIMILEYIN FOLORUNSHO","c":"BOC1063"},{"n":"BAZEET HAMZA","c":"BOC999"},{"n":"MALIK LAWAL","c":"BOC1077"},{"n":"JOSHUA OLAJIDE","c":"BOC1060"},{"n":"BOLUWATIFE OLANIRAN","c":"BOC1036"},{"n":"EMMANUEL OYEKOLA","c":"BOC1006"},{"n":"SAHEED AGUNBIADE-KOSOKO","c":"BOC1017"},{"n":"Divine Okike","c":"BOC1148"},{"n":"IREMIDE MUSEDIK","c":"BOC1174"},{"n":"ABDULKHALIQ OLADELE","c":"BOC1175"},{"n":"HAMEED OSENI","c":"BOC1177"},{"n":"JOSHUA KUFO","c":"BOC1178"},{"n":"IFEDAYO ILESANMI","c":"BOC1179"},{"n":"SOPHIA OKONKWO","c":"BOC1182"},{"n":"EMMANUEL AMEH","c":"BOC1191"},{"n":"FATHIA YUSSUF","c":"BOC1208"},{"n":"MICHEL UMOH","c":"BOC1210"},{"n":"Habeeb Alade","c":"BOC1219"},{"n":"OPEYEMI FASHANU","c":"BOC1233"},{"n":"DAVID KOLADE","c":"BOC1250"},{"n":"AISHA BELLO","c":"BOC1255"},{"n":"ENIOLA ADEWUNMI","c":"BOC1268"},{"n":"ABIGAIL MATHIAS","c":"BOC1176"},{"n":"OLUWATOBILOBA IBIKUNLE","c":"BOC1282"}],
+      "Senior 3": [{"n":"LAWRENCE ABASINEDUHE","c":"BOC1044"},{"n":"KAYODE ADEBIYI","c":"BOC988"},{"n":"OLUWANIFEMI ADESHINA","c":"BOC1076"},{"n":"OYINKANSOLA AKANNI","c":"BOC1075"},{"n":"TIMILEHIN AKINMUTIMI","c":"BOC1074"},{"n":"CONFIDENCE MONYE","c":"BOC1073"},{"n":"CHIAMAKA NWAJIOBIEME","c":"BOC979"},{"n":"OLAJIDE ODUGUWA","c":"BOC986"},{"n":"AYOMIDE OMOBUWA","c":"BOC980"},{"n":"EMMANUEL ONUDINMA","c":"BOC1005"},{"n":"AYOMIDE TAIWO","c":"BOC983"},{"n":"MELODY UFONDU","c":"BOC992"},{"n":"EMMANUEL YUSUF","c":"BOC1019"},{"n":"ALIYAH AKINDE","c":"BOC1112"},{"n":"CECILIA MICHAEL","c":"BOC1133"},{"n":"SAMUEL OGUNYOYE","c":"BOC1134"},{"n":"DANIEL RUNSEWE","c":"BOC1125"},{"n":"ONYEKACHUKWU NNAMDI","c":"BOC1130"},{"n":"OLUWAFIKAYOMI BADEJO","c":"BOC1137"},{"n":"MUBARAK ARIGBABUWO","c":"BOC1140"},{"n":"Awomodu Okikiola","c":"BOC1146"},{"n":"TAWA ADEKOYA","c":"BOC1081"},{"n":"Peculiar Oyebanji","c":"BOC1213"},{"n":"Iremide Oguntayo","c":"BOC1224"}]
+    };
+
+    let activeStaff = "";
+    let allowedArm = "";
+    const rowTimers = new WeakMap();
+
+    const elAuth = document.getElementById("authSection");
+    const elMain = document.getElementById("mainPortal");
+    const elLogout = document.getElementById("logoutBtn");
+    const elLoginBtn = document.getElementById("loginBtn");
+    const elPin = document.getElementById("staffPin");
+    const elSubject = document.getElementById("subjectLabel");
+    const elClass = document.getElementById("classSelect");
+    const elBody = document.getElementById("studentTableBody");
+    const elStatus = document.getElementById("syncStatus");
+
+    function setStatus(text, state) {
+      elStatus.textContent = text;
+      elStatus.className = "";
+      if (state === "syncing") elStatus.classList.add("status-syncing");
+      if (state === "success") elStatus.classList.add("status-success");
+      if (state === "error") elStatus.classList.add("status-error");
+    }
+
+    function verifyAccess() {
+      const rawPin = (elPin.value || "").trim();
+      const encoded = btoa(rawPin);
+      const auth = PERMISSIONS[encoded];
+
+      if (!auth) {
+        alert("Invalid PIN. Access denied.");
+        return;
+      }
+
+      activeStaff = "Staff-" + auth.sub;
+      allowedArm = auth.arm;
+
+      elAuth.classList.add("hidden");
+      elMain.classList.remove("hidden");
+      elLogout.classList.remove("hidden");
+      elSubject.textContent = auth.sub;
+
+      elClass.innerHTML = "";
+      const firstOpt = document.createElement("option");
+      firstOpt.value = "";
+      firstOpt.textContent = "-- Choose Class --";
+      elClass.appendChild(firstOpt);
+
+      let classes = [];
+      if (allowedArm === "Junior") classes = ["Basic 7", "Basic 8", "Basic 9"];
+      if (allowedArm === "Senior") classes = ["Senior 1", "Senior 2", "Senior 3"];
+      if (allowedArm === "Master") classes = ["Basic 7", "Basic 8", "Basic 9", "Senior 1", "Senior 2", "Senior 3"];
+
+      classes.forEach(cls => {
+        const opt = document.createElement("option");
+        opt.value = cls;
+        opt.textContent = cls;
+        elClass.appendChild(opt);
+      });
+
+      setStatus("Ready", "success");
+    }
+
+    function splitName(fullName) {
+      const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
+      const first = parts[0] || "";
+      const last = parts.slice(1).join(" ") || "";
+      return { first, last };
+    }
+
+    function buildRow(student) {
+      const name = student.n;
+      const code = student.c;
+      const nameParts = splitName(name);
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td style="text-align:left;">
+          <span style="font-weight:700; color:#333;">${escapeHtml(name)}</span><br>
+          <small style="color:#666;">ID: ${escapeHtml(code)}</small>
+          <input type="hidden" class="h-fname" value="${escapeAttr(nameParts.first)}">
+          <input type="hidden" class="h-lname" value="${escapeAttr(nameParts.last)}">
+          <input type="hidden" class="h-code" value="${escapeAttr(code)}">
+        </td>
+        <td><input type="number" class="t1" value="0" min="0" max="10"></td>
+        <td><input type="number" class="t2" value="0" min="0" max="10"></td>
+        <td><input type="number" class="extcur" value="0" min="0" max="10"></td>
+        <td><input type="number" class="classint" value="0" min="0" max="5"></td>
+        <td><input type="number" class="note" value="0" min="0" max="5"></td>
+        <td><div class="row-total total-box">0.0</div></td>
+      `;
+
+      tr.querySelectorAll('input[type="number"]').forEach(inp => {
+        inp.addEventListener("input", () => processChange(tr));
+        inp.addEventListener("blur", () => processChange(tr));
+      });
+
+      return tr;
+    }
+
+    function loadStudents() {
+      const cls = elClass.value;
+      elBody.innerHTML = "";
+      if (!cls || !studentDatabase[cls]) return;
+
+      studentDatabase[cls].forEach(s => elBody.appendChild(buildRow(s)));
+      setStatus("Ready", "success");
+    }
+
+    function validateRow(row) {
+      const rules = [
+        { key: "t1", max: 10 },
+        { key: "t2", max: 10 },
+        { key: "extcur", max: 10 },
+        { key: "classint", max: 5 },
+        { key: "note", max: 5 }
+      ];
+
+      let ok = true;
+
+      rules.forEach(r => {
+        const input = row.querySelector("." + r.key);
+        const val = Number(input.value);
+        const bad = !Number.isFinite(val) || val < 0 || val > r.max;
+
+        input.style.border = bad ? "2px solid red" : "1px solid #ccc";
+        if (bad) ok = false;
+      });
+
+      return ok;
+    }
+
+    function clampNumber(v, min, max) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return 0;
+      if (n < min) return min;
+      if (n > max) return max;
+      return n;
+    }
+
+    function computeTotal(row) {
+      const t1 = clampNumber(row.querySelector(".t1").value, 0, 10);
+      const t2 = clampNumber(row.querySelector(".t2").value, 0, 10);
+      const extcur = clampNumber(row.querySelector(".extcur").value, 0, 10);
+      const classint = clampNumber(row.querySelector(".classint").value, 0, 5);
+      const note = clampNumber(row.querySelector(".note").value, 0, 5);
+      return t1 + t2 + extcur + classint + note;
+    }
+
+    function processChange(row) {
+      const totalEl = row.querySelector(".row-total");
+      const valid = validateRow(row);
+
+      if (!valid) {
+        totalEl.textContent = "ERR";
+        return;
+      }
+
+      const total = computeTotal(row);
+      totalEl.textContent = total.toFixed(1);
+
+      const prior = rowTimers.get(row);
+      if (prior) window.clearTimeout(prior);
+
+      const timerId = window.setTimeout(() => {
+        syncToCloud(row, total);
+      }, 600);
+
+      rowTimers.set(row, timerId);
+    }
+
+    async function syncToCloud(row, total) {
+      if (!elClass.value) {
+        setStatus("Choose class", "error");
+        return;
+      }
+
+      setStatus("Saving", "syncing");
+
+      const payload = {
+        staff: activeStaff,
+        className: elClass.value,
+        subject: elSubject.textContent,
+        firstname: row.querySelector(".h-fname").value,
+        lastname: row.querySelector(".h-lname").value,
+        code: row.querySelector(".h-code").value,
+        t1: Number(row.querySelector(".t1").value) || 0,
+        t2: Number(row.querySelector(".t2").value) || 0,
+        extcur: Number(row.querySelector(".extcur").value) || 0,
+        classint: Number(row.querySelector(".classint").value) || 0,
+        note: Number(row.querySelector(".note").value) || 0,
+        total: Number(total) || 0
+      };
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data || data.ok !== true) {
+          setStatus("Save failed", "error");
+          return;
+        }
+
+        setStatus("Saved", "success");
+      } catch (e) {
+        setStatus("Connection error", "error");
+      }
+    }
+
+    function logout() {
+      location.reload();
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replaceAll("\n", " ");
+    }
+
+    elLoginBtn.addEventListener("click", verifyAccess);
+    elLogout.addEventListener("click", logout);
+    elClass.addEventListener("change", loadStudents);
+
+    elPin.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verifyAccess();
+    });
+  </script>
+</body>
+</html>
