@@ -20,6 +20,7 @@ th{background:#0d47a1;color:#fff;padding:10px;}
 td{border:1px solid #eee;padding:8px;text-align:center;}
 input[type=number]{width:65px;text-align:center;}
 .row-total{font-weight:900;color:#0d47a1;}
+.editing-row{background:#e3f2fd !important;}
 </style>
 </head>
 
@@ -70,11 +71,11 @@ onclick="location.reload()">LOGOUT</button>
 
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwkz2b7tMZyOgvq-Y3sBjFWK8MNxFMLYfpEHyLEo0wGWUV1Yd1mJOt48tPO9hmt7GGSng/exec";
 
-let activeStaff="";
-let allowedArm="";
+let activeStaff="", allowedArm="";
+const rowTimers=new WeakMap();
 
 /* ===== FULL STUDENT DATABASE ===== */
-
+/* PASTE YOUR FULL studentDatabase OBJECT HERE */
 const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
@@ -89,8 +90,7 @@ const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 
 function setSync(t,c){
 const e=document.getElementById("syncStatus");
-e.textContent=t;
-e.style.color=c;
+e.textContent=t;e.style.color=c;
 }
 
 /* ===== LOGIN ===== */
@@ -104,12 +104,12 @@ method:"POST",
 body:JSON.stringify({action:"login",pin})
 });
 
-const data=await res.json();
+const d=await res.json();
 
-if(!data.ok){alert("Invalid PIN");return;}
+if(!d.ok){alert("Invalid PIN");return;}
 
-activeStaff=data.subject;
-allowedArm=data.arm;
+activeStaff=d.subject;
+allowedArm=d.arm;
 
 document.getElementById("authSection").classList.add("hidden");
 document.getElementById("mainPortal").classList.remove("hidden");
@@ -119,7 +119,7 @@ document.getElementById("subjectLabel").textContent=activeStaff;
 loadClasses();
 }
 
-/* ===== CLASS LOADER ===== */
+/* ===== CLASSES ===== */
 
 function loadClasses(){
 
@@ -133,10 +133,7 @@ if(allowedArm==="Senior") c=["Senior 1","Senior 2","Senior 3"];
 if(allowedArm==="Master")
 c=["Basic 7","Basic 8","Basic 9","Senior 1","Senior 2","Senior 3"];
 
-const f=document.createElement("option");
-f.textContent="-- Select Class --";
-f.value="";
-sel.appendChild(f);
+sel.innerHTML='<option value="">-- Select Class --</option>';
 
 c.forEach(x=>{
 const o=document.createElement("option");
@@ -152,14 +149,11 @@ sel.onchange=loadStudents;
 function validateRow(tr){
 const lim={t1:10,t2:10,extcur:5,classint:5,note:10};
 let ok=true;
-
 for(let k in lim){
 const i=tr.querySelector("."+k);
 const v=Number(i.value);
-if(v<0||v>lim[k]){
-i.style.border="2px solid red";
-ok=false;
-}else i.style.border="1px solid #ccc";
+if(v<0||v>lim[k]){i.style.border="2px solid red";ok=false;}
+else i.style.border="1px solid #ccc";
 }
 return ok;
 }
@@ -173,15 +167,20 @@ tr.dataset.code=s.c;
 
 tr.innerHTML=`
 <td style="text-align:left">${s.n}</td>
-<td><input class="t1" type="number" max="10"></td>
-<td><input class="t2" type="number" max="10"></td>
-<td><input class="extcur" type="number" max="5"></td>
-<td><input class="classint" type="number" max="5"></td>
-<td><input class="note" type="number" max="10"></td>
+<td><input class="t1" type="number"></td>
+<td><input class="t2" type="number"></td>
+<td><input class="extcur" type="number"></td>
+<td><input class="classint" type="number"></td>
+<td><input class="note" type="number"></td>
 <td class="row-total">0</td>`;
 
 tr.querySelectorAll("input").forEach(i=>{
-i.oninput=()=>processRow(tr,s);
+
+i.addEventListener("focus",()=>tr.classList.add("editing-row"));
+i.addEventListener("blur",()=>tr.classList.remove("editing-row"));
+
+i.addEventListener("input",()=>processRow(tr,s));
+
 });
 
 return tr;
@@ -190,6 +189,9 @@ return tr;
 /* ===== PROCESS ===== */
 
 function processRow(tr,s){
+
+const old=rowTimers.get(tr);
+if(old) clearTimeout(old);
 
 if(!validateRow(tr)){
 tr.querySelector(".row-total").textContent="ERR";
@@ -203,10 +205,14 @@ const c=+tr.querySelector(".classint").value||0;
 const n=+tr.querySelector(".note").value||0;
 
 const total=t1+t2+e+c+n;
-
 tr.querySelector(".row-total").textContent=total.toFixed(1);
 
+const timer=setTimeout(()=>{
+if(!validateRow(tr)) return;
 syncScore(s,total,t1,t2,e,c,n);
+},700);
+
+rowTimers.set(tr,timer);
 }
 
 /* ===== SAVE ===== */
@@ -234,27 +240,27 @@ setSync("Error","#d32f2f");
 }
 }
 
-/* ===== FETCH SCORES ===== */
+/* ===== FETCH ===== */
 
 async function fetchScoresAndFill(cls){
 
-const res=await fetch(SCRIPT_URL,{
+const r=await fetch(SCRIPT_URL,{
 method:"POST",
 body:JSON.stringify({action:"fetch",className:cls,subject:activeStaff})
 });
 
-const d=await res.json();
-if(!d.ok)return;
+const d=await r.json();
+if(!d.ok) return;
 
 document.querySelectorAll("#studentTableBody tr").forEach(tr=>{
-const r=d.records[tr.dataset.code];
-if(!r)return;
-tr.querySelector(".t1").value=r.t1;
-tr.querySelector(".t2").value=r.t2;
-tr.querySelector(".extcur").value=r.extcur;
-tr.querySelector(".classint").value=r.classint;
-tr.querySelector(".note").value=r.note;
-tr.querySelector(".row-total").textContent=Number(r.total).toFixed(1);
+const rec=d.records[tr.dataset.code];
+if(!rec)return;
+tr.querySelector(".t1").value=rec.t1;
+tr.querySelector(".t2").value=rec.t2;
+tr.querySelector(".extcur").value=rec.extcur;
+tr.querySelector(".classint").value=rec.classint;
+tr.querySelector(".note").value=rec.note;
+tr.querySelector(".row-total").textContent=Number(rec.total).toFixed(1);
 });
 }
 
