@@ -3,24 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BOPC Staff CA Portal</title>
+<title>BOPC CA Portal</title>
 
 <style>
 :root{--blue:#0d47a1;--light:#f5f7fb;}
 body{font-family:Segoe UI;background:var(--light);margin:0;padding:20px;}
-.container{max-width:1200px;margin:auto;background:#fff;padding:25px;border-radius:14px;box-shadow:0 8px 25px rgba(0,0,0,.08);}
-h1{text-align:center;color:var(--blue);}
+.container{max-width:1300px;margin:auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,.08);}
 .hidden{display:none;}
-.login-box{max-width:400px;margin:60px auto;padding:30px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.1);}
-button{background:var(--blue);color:#fff;border:none;padding:12px;border-radius:8px;font-weight:700;cursor:pointer;width:100%;}
-.topbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin:20px 0;}
-.card{background:#f9fafc;border:1px solid #ddd;border-radius:10px;padding:12px;}
-table{width:100%;border-collapse:collapse;}
-th{background:#0d47a1;color:#fff;padding:10px;}
-td{border:1px solid #eee;padding:8px;text-align:center;}
-input[type=number]{width:65px;text-align:center;}
-.row-total{font-weight:900;color:#0d47a1;}
-.editing-row{background:#e3f2fd !important;}
+h1{text-align:center;color:var(--blue);}
+button{background:var(--blue);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;}
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th{background:var(--blue);color:#fff;padding:10px;}
+td{border:1px solid #eee;padding:7px;text-align:center;}
+input[type=number]{width:60px;text-align:center;}
+.editing-row{background:#e3f2fd!important;position:sticky;top:0;z-index:5;}
+.low-score{background:#ffebee!important;}
+.row-status{font-weight:700;}
 </style>
 </head>
 
@@ -28,54 +26,69 @@ input[type=number]{width:65px;text-align:center;}
 
 <div class="container">
 
-<h1>BOLA OLAT PRIVATE COLLEGE</h1>
+<h1>BOLA OLAT PRIVATE COLLEGE CA PORTAL</h1>
 
-<button id="logoutBtn" class="hidden"
-style="max-width:120px;background:#d32f2f;margin:10px 0;"
-onclick="location.reload()">LOGOUT</button>
-
-<div id="authSection" class="login-box">
-<h2>Teacher Login</h2>
-<input type="password" id="staffPin" placeholder="Enter PIN">
-<br><br>
-<button onclick="verifyAccess()">ACCESS MY CLASSES</button>
+<div id="authSection">
+<input id="staffPin" type="password" placeholder="Enter PIN">
+<button onclick="verifyAccess()">LOGIN</button>
 </div>
 
-<div id="mainPortal" class="hidden">
+<button id="logoutBtn" class="hidden" onclick="location.reload()">LOGOUT</button>
 
-<div class="topbar">
-<div class="card">Logged in as:<br><b id="subjectLabel"></b></div>
-<div class="card"><select id="classSelect"></select></div>
-<div class="card">Data Sync:<br><b id="syncStatus">Ready</b></div>
-</div>
+<!-- TEACHER -->
+<div id="teacherPortal" class="hidden">
+<h3>Teacher Portal — <span id="subjectLabel"></span></h3>
+
+<select id="classSelect"></select>
+<div id="syncStatus">Ready</div>
 
 <table>
 <thead>
 <tr>
-<th style="text-align:left">Student</th>
-<th>T1 (10)</th>
-<th>T2 (10)</th>
-<th>Ext.Cur (5)</th>
-<th>Class Int (5)</th>
-<th>Note (10)</th>
-<th>Total (40)</th>
+<th>Student</th>
+<th>T1</th><th>T2</th>
+<th>Ext</th><th>Class</th>
+<th>Note</th>
+<th>Total</th>
+<th>Status</th>
 </tr>
 </thead>
 <tbody id="studentTableBody"></tbody>
 </table>
-
 </div>
+
+<!-- PRINCIPAL -->
+<div id="principalPortal" class="hidden">
+<h3>Principal Dashboard</h3>
+
+<select id="pClass"></select>
+<input id="pSubject" placeholder="Subject">
+<button onclick="loadPrincipal()">Load Scores</button>
+
+<table>
+<thead>
+<tr>
+<th>Student</th>
+<th>Subject</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody id="principalBody"></tbody>
+</table>
+</div>
+
 </div>
 
 <script>
 
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwkz2b7tMZyOgvq-Y3sBjFWK8MNxFMLYfpEHyLEo0wGWUV1Yd1mJOt48tPO9hmt7GGSng/exec";
 
-let activeStaff="", allowedArm="";
-const rowTimers=new WeakMap();
+let activeStaff="",allowedArm="";
 
-/* ===== FULL STUDENT DATABASE ===== */
-/* PASTE YOUR FULL studentDatabase OBJECT HERE */
+/* ======================
+   STUDENT DATABASE
+   PASTE FULL LIST HERE
+====================== */
 const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
@@ -86,76 +99,58 @@ const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
   "Senior 3": [{"n":"LAWRENCE ABASINEDUHE","c":"BOC1044"},{"n":"KAYODE ADEBIYI","c":"BOC988"},{"n":"OLUWANIFEMI ADESHINA","c":"BOC1076"},{"n":"OYINKANSOLA AKANNI","c":"BOC1075"},{"n":"TIMILEHIN AKINMUTIMI","c":"BOC1074"},{"n":"CONFIDENCE MONYE","c":"BOC1073"},{"n":"CHIAMAKA NWAJIOBIEME","c":"BOC979"},{"n":"OLAJIDE ODUGUWA","c":"BOC986"},{"n":"AYOMIDE OMOBUWA","c":"BOC980"},{"n":"EMMANUEL ONUDINMA","c":"BOC1005"},{"n":"AYOMIDE TAIWO","c":"BOC983"},{"n":"MELODY UFONDU","c":"BOC992"},{"n":"EMMANUEL YUSUF","c":"BOC1019"},{"n":"ALIYAH AKINDE","c":"BOC1112"},{"n":"CECILIA MICHAEL","c":"BOC1133"},{"n":"SAMUEL OGUNYOYE","c":"BOC1134"},{"n":"DANIEL RUNSEWE","c":"BOC1125"},{"n":"ONYEKACHUKWU NNAMDI","c":"BOC1130"},{"n":"OLUWAFIKAYOMI BADEJO","c":"BOC1137"},{"n":"MUBARAK ARIGBABUWO","c":"BOC1140"},{"n":"Awomodu Okikiola","c":"BOC1146"},{"n":"TAWA ADEKOYA","c":"BOC1081"},{"n":"Peculiar Oyebanji","c":"BOC1213"},{"n":"Iremide Oguntayo","c":"BOC1224"}]
 };
 
-/* ===== HELPERS ===== */
-
-function setSync(t,c){
-const e=document.getElementById("syncStatus");
-e.textContent=t;e.style.color=c;
-}
-
 /* ===== LOGIN ===== */
 
 async function verifyAccess(){
 
 const pin=document.getElementById("staffPin").value.trim();
 
-const res=await fetch(SCRIPT_URL,{
+const r=await fetch(SCRIPT_URL,{
 method:"POST",
 body:JSON.stringify({action:"login",pin})
 });
 
-const d=await res.json();
+const d=await r.json();
 
 if(!d.ok){alert("Invalid PIN");return;}
+
+document.getElementById("authSection").classList.add("hidden");
+document.getElementById("logoutBtn").classList.remove("hidden");
 
 activeStaff=d.subject;
 allowedArm=d.arm;
 
-document.getElementById("authSection").classList.add("hidden");
-document.getElementById("mainPortal").classList.remove("hidden");
-document.getElementById("logoutBtn").classList.remove("hidden");
+if(allowedArm==="Master"){
+document.getElementById("principalPortal").classList.remove("hidden");
+loadPrincipalSelectors();
+return;
+}
+
+document.getElementById("teacherPortal").classList.remove("hidden");
 document.getElementById("subjectLabel").textContent=activeStaff;
 
 loadClasses();
 }
 
-/* ===== CLASSES ===== */
+/* ===== CLASS LOADER ===== */
 
 function loadClasses(){
 
 const sel=document.getElementById("classSelect");
-sel.innerHTML="";
+sel.innerHTML='<option value="">Select Class</option>';
 
 let c=[];
 
 if(allowedArm==="Junior") c=["Basic 7","Basic 8","Basic 9"];
 if(allowedArm==="Senior") c=["Senior 1","Senior 2","Senior 3"];
-if(allowedArm==="Master")
-c=["Basic 7","Basic 8","Basic 9","Senior 1","Senior 2","Senior 3"];
-
-sel.innerHTML='<option value="">-- Select Class --</option>';
 
 c.forEach(x=>{
-const o=document.createElement("option");
+let o=document.createElement("option");
 o.value=x;o.textContent=x;
 sel.appendChild(o);
 });
 
 sel.onchange=loadStudents;
-}
-
-/* ===== VALIDATION ===== */
-
-function validateRow(tr){
-const lim={t1:10,t2:10,extcur:5,classint:5,note:10};
-let ok=true;
-for(let k in lim){
-const i=tr.querySelector("."+k);
-const v=Number(i.value);
-if(v<0||v>lim[k]){i.style.border="2px solid red";ok=false;}
-else i.style.border="1px solid #ccc";
-}
-return ok;
 }
 
 /* ===== BUILD ROW ===== */
@@ -166,61 +161,87 @@ const tr=document.createElement("tr");
 tr.dataset.code=s.c;
 
 tr.innerHTML=`
-<td style="text-align:left">${s.n}</td>
-<td><input class="t1" type="number"></td>
-<td><input class="t2" type="number"></td>
-<td><input class="extcur" type="number"></td>
-<td><input class="classint" type="number"></td>
-<td><input class="note" type="number"></td>
-<td class="row-total">0</td>`;
+<td>${s.n}</td>
+<td><input class=t1 type=number></td>
+<td><input class=t2 type=number></td>
+<td><input class=extcur type=number></td>
+<td><input class=classint type=number></td>
+<td><input class=note type=number></td>
+<td class=row-total>0</td>
+<td class=row-status>Ready</td>`;
 
-tr.querySelectorAll("input").forEach(i=>{
+let editing=false;
 
-i.addEventListener("focus",()=>tr.classList.add("editing-row"));
-i.addEventListener("blur",()=>tr.classList.remove("editing-row"));
+tr.querySelectorAll("input").forEach(inp=>{
 
-i.addEventListener("input",()=>processRow(tr,s));
+inp.addEventListener("focus",()=>{
+editing=true;
+tr.classList.add("editing-row");
+setRowStatus(tr,"Editing","#1565c0");
+});
+
+inp.addEventListener("input",()=>updateTotal(tr));
+
+inp.addEventListener("blur",()=>{
+setTimeout(async()=>{
+if(!tr.contains(document.activeElement)&&editing){
+
+editing=false;
+tr.classList.remove("editing-row");
+
+if(!validateRow(tr)){
+setRowStatus(tr,"Invalid","#d32f2f");
+return;
+}
+
+await saveRow(tr,s);
+}
+},120);
+});
 
 });
 
 return tr;
 }
 
-/* ===== PROCESS ===== */
+/* ===== HELPERS ===== */
 
-function processRow(tr,s){
-
-const old=rowTimers.get(tr);
-if(old) clearTimeout(old);
-
-if(!validateRow(tr)){
-tr.querySelector(".row-total").textContent="ERR";
-return;
+function setRowStatus(tr,t,c){
+const x=tr.querySelector(".row-status");
+x.textContent=t;
+x.style.color=c;
 }
 
+function updateTotal(tr){
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
 const e=+tr.querySelector(".extcur").value||0;
 const c=+tr.querySelector(".classint").value||0;
 const n=+tr.querySelector(".note").value||0;
+tr.querySelector(".row-total").textContent=(t1+t2+e+c+n).toFixed(1);
+}
 
-const total=t1+t2+e+c+n;
-tr.querySelector(".row-total").textContent=total.toFixed(1);
-
-const timer=setTimeout(()=>{
-if(!validateRow(tr)) return;
-syncScore(s,total,t1,t2,e,c,n);
-},5000);
-
-rowTimers.set(tr,timer);
+function validateRow(tr){
+const lim={t1:10,t2:10,extcur:5,classint:5,note:10};
+for(let k in lim){
+const v=+tr.querySelector("."+k).value||0;
+if(v>lim[k]) return false;
+}
+return true;
 }
 
 /* ===== SAVE ===== */
 
-async function syncScore(s,total,t1,t2,extcur,classint,note){
+async function saveRow(tr,s){
 
-try{
-setSync("Saving...","#f57c00");
+const t1=+tr.querySelector(".t1").value||0;
+const t2=+tr.querySelector(".t2").value||0;
+const extcur=+tr.querySelector(".extcur").value||0;
+const classint=+tr.querySelector(".classint").value||0;
+const note=+tr.querySelector(".note").value||0;
+const total=t1+t2+extcur+classint+note;
+
+setRowStatus(tr,"Saving","#f57c00");
 
 await fetch(SCRIPT_URL,{
 method:"POST",
@@ -233,40 +254,12 @@ t1,t2,extcur,classint,note,total
 })
 });
 
-setSync("Saved","#2e7d32");
-
-}catch{
-setSync("Error","#d32f2f");
-}
-}
-
-/* ===== FETCH ===== */
-
-async function fetchScoresAndFill(cls){
-
-const r=await fetch(SCRIPT_URL,{
-method:"POST",
-body:JSON.stringify({action:"fetch",className:cls,subject:activeStaff})
-});
-
-const d=await r.json();
-if(!d.ok) return;
-
-document.querySelectorAll("#studentTableBody tr").forEach(tr=>{
-const rec=d.records[tr.dataset.code];
-if(!rec)return;
-tr.querySelector(".t1").value=rec.t1;
-tr.querySelector(".t2").value=rec.t2;
-tr.querySelector(".extcur").value=rec.extcur;
-tr.querySelector(".classint").value=rec.classint;
-tr.querySelector(".note").value=rec.note;
-tr.querySelector(".row-total").textContent=Number(rec.total).toFixed(1);
-});
+setRowStatus(tr,"Saved","#2e7d32");
 }
 
 /* ===== LOAD STUDENTS ===== */
 
-async function loadStudents(){
+function loadStudents(){
 
 const cls=document.getElementById("classSelect").value;
 const body=document.getElementById("studentTableBody");
@@ -275,8 +268,52 @@ body.innerHTML="";
 
 (studentDatabase[cls]||[])
 .forEach(s=>body.appendChild(buildRow(s)));
+}
 
-await fetchScoresAndFill(cls);
+/* ===== PRINCIPAL ===== */
+
+function loadPrincipalSelectors(){
+
+const sel=document.getElementById("pClass");
+
+Object.keys(studentDatabase).forEach(c=>{
+let o=document.createElement("option");
+o.value=c;o.textContent=c;
+sel.appendChild(o);
+});
+}
+
+async function loadPrincipal(){
+
+const cls=document.getElementById("pClass").value;
+const sub=document.getElementById("pSubject").value;
+
+const r=await fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify({
+action:"principal",
+className:cls,
+subject:sub
+})
+});
+
+const d=await r.json();
+
+const body=document.getElementById("principalBody");
+body.innerHTML="";
+
+(d.records||[]).forEach(x=>{
+
+const tr=document.createElement("tr");
+if(Number(x.total)<20) tr.classList.add("low-score");
+
+tr.innerHTML=`
+<td>${x.name}</td>
+<td>${x.subject}</td>
+<td>${x.total}</td>`;
+
+body.appendChild(tr);
+});
 }
 
 </script>
