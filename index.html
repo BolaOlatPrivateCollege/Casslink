@@ -18,6 +18,10 @@ td{border:1px solid #eee;padding:7px;text-align:center;}
 input[type=number]{width:60px;text-align:center;}
 .total-box{font-weight:700;color:#0d47a1;}
 .row-status{font-weight:700;}
+.invalid{
+background:#ffebee !important;
+border:2px solid #d32f2f !important;
+}
 </style>
 </head>
 
@@ -79,10 +83,9 @@ classint:5,
 note:10
 };
 
-/* ===== SAMPLE STUDENTS ===== */
+/* ===== STUDENTS ===== */
 /* PASTE FULL DATABASE HERE */
 
-const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
   "Basic 8": [{"n":"AMANDA OGUNSHOLA","c":"BOC1150"},{"n":"SEMILORE BADEJO","c":"BOC1151"},{"n":"VICTOR CHUKWU","c":"BOC1152"},{"n":"SEMILORE IGE","c":"BOC1153"},{"n":"VALOUR CHUKWU","c":"BOC1154"},{"n":"EMMANUEL AYOADE","c":"BOC1155"},{"n":"DAVID AMEH","c":"BOC1156"},{"n":"HAMDIYAH OSENI","c":"BOC1157"},{"n":"TUNMISE AKANNI","c":"BOC1158"},{"n":"SOPHIA ANWANA","c":"BOC1159"},{"n":"MORAYO OTUKOYA","c":"BOC1160"},{"n":"MIRACLE OLUWASEUN","c":"BOC1161"},{"n":"QOYUM KUYE","c":"BOC1162"},{"n":"JOMILOJU AKANDE","c":"BOC1163"},{"n":"OLUWATOBILOBA LAWAL","c":"BOC1164"},{"n":"ABDULKABIR OKUSAGA","c":"BOC1165"},{"n":"AZIMAH OLADELE","c":"BOC1166"},{"n":"ABDULRAHEEM OKUSAGA","c":"BOC1167"},{"n":"ANNABEL EMEKA","c":"BOC1183"},{"n":"ANUOLUWAPO OLAYIWOLA","c":"BOC1184"},{"n":"ADERINSOLA AKALA","c":"BOC1185"},{"n":"MOZIDAT KAZEEM","c":"BOC1186"},{"n":"ALIYAH ALADE","c":"BOC1187"},{"n":"CHIEMERIE NWAJIOBIEME","c":"BOC1188"},{"n":"DARASIMI OGUNDELE","c":"BOC1189"},{"n":"EMMANUELLA CHECHE","c":"BOC1190"},{"n":"DASOLA OGUNDELE","c":"BOC1193"},{"n":"RODIAH BANIRE","c":"BOC1194"},{"n":"MMESOMA OKAFOR","c":"BOC1195"},{"n":"AYOMIDE SHOAGA","c":"BOC1197"},{"n":"CHIBUZOR MICHAEL","c":"BOC1198"},{"n":"MERCY OKONKWO","c":"BOC1199"},{"n":"ESTHER ORJI","c":"BOC1201"},{"n":"NAZARETH OLANIRAN","c":"BOC1202"},{"n":"ANUOLUWAPO OGUNSADE","c":"BOC1203"},{"n":"EMMANUEL SOSANYA","c":"BOC1204"},{"n":"FARIDAH YUSUF","c":"BOC1205"},{"n":"ABDUL-BASIT ADEBAYO","c":"BOC1207"},{"n":"Desire Babalola","c":"BOC1211"},{"n":"Abidemi Oyebanji","c":"BOC1214"}],
@@ -103,11 +106,9 @@ return String(str)
 .replace(/'/g,"&#039;");
 }
 
-function escapeAttr(str){ return escapeHtml(str); }
-
 function splitName(full){
-const parts=full.trim().split(" ");
-return {first:parts.shift()||"",last:parts.join(" ")};
+const p=full.trim().split(" ");
+return {first:p.shift()||"",last:p.join(" ")};
 }
 
 function setRowStatus(tr,text,color){
@@ -116,13 +117,32 @@ s.textContent=text;
 s.style.color=color;
 }
 
-function enforceMax(input){
-const cls=input.classList[0];
-const max=SCORE_LIMITS[cls];
-let v=Number(input.value);
-if(isNaN(v)||v<0)v=0;
-if(v>max)v=max;
-input.value=v;
+/* ===== VALIDATION ===== */
+
+function validateRow(tr){
+
+let valid=true;
+
+for(const key in SCORE_LIMITS){
+
+const input=tr.querySelector("." + key);
+const max=SCORE_LIMITS[key];
+const v=Number(input.value||0);
+
+if(v<0 || v>max){
+
+input.classList.add("invalid");
+input.title="Max allowed is "+max;
+valid=false;
+
+}else{
+
+input.classList.remove("invalid");
+input.title="";
+}
+}
+
+return valid;
 }
 
 /* ================= LOGIN ================= */
@@ -179,7 +199,7 @@ sel.selectedIndex=0;
 loadStudents();
 }
 
-/* ================= FETCH EXISTING ================= */
+/* ================= FETCH ================= */
 
 async function fetchExisting(className){
 
@@ -209,21 +229,19 @@ const tr=document.createElement("tr");
 
 tr.innerHTML=`
 <td style="text-align:left;">
-<span style="font-weight:700;color:#333;">
-${escapeHtml(name)}
-</span><br>
-<small style="color:#666;">ID: ${escapeHtml(code)}</small>
+<b>${escapeHtml(name)}</b><br>
+<small>ID: ${escapeHtml(code)}</small>
 
-<input type="hidden" class="h-fname" value="${escapeAttr(nameParts.first)}">
-<input type="hidden" class="h-lname" value="${escapeAttr(nameParts.last)}">
-<input type="hidden" class="h-code" value="${escapeAttr(code)}">
+<input type="hidden" class="h-fname" value="${nameParts.first}">
+<input type="hidden" class="h-lname" value="${nameParts.last}">
+<input type="hidden" class="h-code" value="${code}">
 </td>
 
-<td><input type="number" class="t1" min="0" max="10"></td>
-<td><input type="number" class="t2" min="0" max="10"></td>
-<td><input type="number" class="extcur" min="0" max="5"></td>
-<td><input type="number" class="classint" min="0" max="5"></td>
-<td><input type="number" class="note" min="0" max="10"></td>
+<td><input type="number" class="t1"></td>
+<td><input type="number" class="t2"></td>
+<td><input type="number" class="extcur"></td>
+<td><input type="number" class="classint"></td>
+<td><input type="number" class="note"></td>
 
 <td><div class="row-total total-box">0.0</div></td>
 <td class="row-status">Ready</td>
@@ -248,14 +266,24 @@ setRowStatus(tr,"Editing","#1565c0");
 });
 
 inp.addEventListener("input",()=>{
-enforceMax(inp);
 updateTotal(tr);
+if(!validateRow(tr))
+setRowStatus(tr,"Error","#d32f2f");
+else
+setRowStatus(tr,"Editing","#1565c0");
 });
 
 inp.addEventListener("blur",()=>{
 setTimeout(async()=>{
 if(!tr.contains(document.activeElement)&&editing){
+
 editing=false;
+
+if(!validateRow(tr)){
+setRowStatus(tr,"Error","#d32f2f");
+return;
+}
+
 await saveRow(tr);
 }
 },120);
@@ -264,7 +292,6 @@ await saveRow(tr);
 });
 
 updateTotal(tr);
-
 return tr;
 }
 
@@ -290,10 +317,6 @@ try{
 
 setRowStatus(tr,"Saving...","#f57c00");
 
-const fname=tr.querySelector(".h-fname").value;
-const lname=tr.querySelector(".h-lname").value;
-const code=tr.querySelector(".h-code").value;
-
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
 const extcur=+tr.querySelector(".extcur").value||0;
@@ -307,9 +330,9 @@ action:"save",
 token:TOKEN,
 className:document.getElementById("classSelect").value,
 subject:activeStaff,
-firstname:fname,
-lastname:lname,
-code,
+firstname:tr.querySelector(".h-fname").value,
+lastname:tr.querySelector(".h-lname").value,
+code:tr.querySelector(".h-code").value,
 t1,t2,extcur,classint,note,
 total:t1+t2+extcur+classint+note
 })
