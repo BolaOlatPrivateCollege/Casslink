@@ -1,17 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BOPC Staff CA Portal</title>
+
 <style>
-body{font-family:Arial;padding:20px;background:#f4f7f6;}
-.container{max-width:1100px;margin:auto;background:#fff;padding:20px;border-radius:10px;}
+
+:root{
+  --blue:#0d47a1;
+  --gold:#fbc02d;
+  --light:#f5f7fb;
+}
+
+body{
+  font-family:"Segoe UI",sans-serif;
+  background:var(--light);
+  margin:0;
+  padding:20px;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  background:#fff;
+  padding:25px;
+  border-radius:14px;
+  box-shadow:0 8px 25px rgba(0,0,0,.08);
+}
+
+h1{
+  margin:0;
+  color:var(--blue);
+  text-align:center;
+}
+
 .hidden{display:none;}
-table{width:100%;border-collapse:collapse;}
-th{background:#0d47a1;color:#fff;padding:10px;}
-td{border:1px solid #ddd;padding:8px;text-align:center;}
-input[type=number]{width:60px;}
-.pill{padding:10px;background:#e3f2fd;margin-bottom:10px;}
+
+.login-box{
+  max-width:400px;
+  margin:60px auto;
+  padding:30px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.1);
+  text-align:center;
+}
+
+button{
+  background:var(--blue);
+  color:#fff;
+  border:none;
+  padding:12px;
+  border-radius:8px;
+  font-weight:700;
+  width:100%;
+  cursor:pointer;
+}
+
+.topbar{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  margin:20px 0;
+}
+
+.card{
+  background:#f9fafc;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:12px;
+}
+
+select,input{
+  width:100%;
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+
+th{
+  background:var(--blue);
+  color:#fff;
+  padding:12px;
+  font-size:13px;
+}
+
+td{
+  border:1px solid #eee;
+  padding:8px;
+  text-align:center;
+}
+
+tr:nth-child(even){background:#fafafa;}
+
+input[type=number]{
+  width:65px;
+  text-align:center;
+  font-weight:700;
+}
+
+.row-total{
+  font-weight:900;
+  color:var(--blue);
+}
+
 </style>
 </head>
 
@@ -19,30 +118,42 @@ input[type=number]{width:60px;}
 
 <div class="container">
 
-<div id="authSection">
+<h1>BOLA OLAT PRIVATE COLLEGE</h1>
+
+<!-- LOGIN -->
+<div id="authSection" class="login-box">
 <h2>Teacher Login</h2>
-<input type="password" id="staffPin">
-<button onclick="verifyAccess()">Login</button>
+<input type="password" id="staffPin" placeholder="Enter PIN">
+<br><br>
+<button onclick="verifyAccess()">ACCESS MY CLASSES</button>
 </div>
 
+<!-- MAIN -->
 <div id="mainPortal" class="hidden">
 
-<div class="pill">
-Subject: <span id="subjectLabel"></span>
+<div class="topbar">
+
+<div class="card">
+Logged in as:<br>
+<b id="subjectLabel"></b>
 </div>
 
+<div class="card">
 <select id="classSelect"></select>
+</div>
+
+</div>
 
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>T1</th>
-<th>T2</th>
-<th>Ext.Cur</th>
-<th>Class Int</th>
-<th>Note</th>
-<th>Total</th>
+<th style="text-align:left">Student</th>
+<th>T1 (10)</th>
+<th>T2 (10)</th>
+<th>Ext.Cur (5)</th>
+<th>Class Int (5)</th>
+<th>Note (10)</th>
+<th>Total (40)</th>
 </tr>
 </thead>
 <tbody id="studentTableBody"></tbody>
@@ -53,19 +164,33 @@ Subject: <span id="subjectLabel"></span>
 
 <script>
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkz2b7tMZyOgvq-Y3sBjFWK8MNxFMLYfpEHyLEo0wGWUV1Yd1mJOt48tPO9hmt7GGSng/exec";
+/* ===========================
+   CONFIG
+=========================== */
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbwkz2b7tMZyOgvq-Y3sBjFWK8MNxFMLYfpEHyLEo0wGWUV1Yd1mJOt48tPO9hmt7GGSng/exec";
 
 let activeStaff="";
 let allowedArm="";
 
+/* SAMPLE STUDENTS (replace with full list) */
 const studentDatabase={
-"Basic 7":[{n:"STUDENT ONE",c:"BOC001"}]
+"Basic 7":[{n:"STUDENT ONE",c:"BOC001"}],
+"Basic 8":[],
+"Basic 9":[],
+"Senior 1":[],
+"Senior 2":[],
+"Senior 3":[]
 };
 
-/* LOGIN */
+/* ===========================
+   LOGIN
+=========================== */
+
 async function verifyAccess(){
 
-const pin=document.getElementById("staffPin").value;
+const pin=document.getElementById("staffPin").value.trim();
 
 const res=await fetch(SCRIPT_URL,{
 method:"POST",
@@ -87,35 +212,63 @@ allowedArm=data.arm;
 
 document.getElementById("authSection").classList.add("hidden");
 document.getElementById("mainPortal").classList.remove("hidden");
+
 document.getElementById("subjectLabel").textContent=activeStaff;
 
 loadClasses();
 }
 
-/* LOAD CLASSES */
+/* ===========================
+   CLASS LOADER (CORRECT)
+=========================== */
+
 function loadClasses(){
 
 const sel=document.getElementById("classSelect");
-
 sel.innerHTML="";
 
-["Basic 7","Basic 8","Basic 9","Senior 1","Senior 2","Senior 3"]
-.forEach(c=>{
+let classes=[];
+
+if(allowedArm==="Junior"){
+classes=["Basic 7","Basic 8","Basic 9"];
+}
+
+if(allowedArm==="Senior"){
+classes=["Senior 1","Senior 2","Senior 3"];
+}
+
+if(allowedArm==="Master"){
+classes=[
+"Basic 7","Basic 8","Basic 9",
+"Senior 1","Senior 2","Senior 3"
+];
+}
+
+const first=document.createElement("option");
+first.value="";
+first.textContent="-- Select Class --";
+sel.appendChild(first);
+
+classes.forEach(c=>{
 const o=document.createElement("option");
-o.value=c;o.textContent=c;
+o.value=c;
+o.textContent=c;
 sel.appendChild(o);
 });
 
 sel.addEventListener("change",loadStudents);
 }
 
-/* BUILD ROW */
+/* ===========================
+   BUILD ROW
+=========================== */
+
 function buildRow(s){
 
 const tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td>${s.n}</td>
+<td style="text-align:left">${s.n}</td>
 <td><input class="t1" type="number" min="0" max="10"></td>
 <td><input class="t2" type="number" min="0" max="10"></td>
 <td><input class="extcur" type="number" min="0" max="5"></td>
@@ -131,7 +284,10 @@ inp.addEventListener("input",()=>processRow(tr,s));
 return tr;
 }
 
-/* PROCESS */
+/* ===========================
+   PROCESS SCORE
+=========================== */
+
 function processRow(tr,s){
 
 const t1=Number(tr.querySelector(".t1").value)||0;
@@ -147,7 +303,10 @@ tr.querySelector(".row-total").textContent=total.toFixed(1);
 syncScore(s,total,t1,t2,ext,cls,note);
 }
 
-/* SAVE */
+/* ===========================
+   SAVE TO CLOUD
+=========================== */
+
 async function syncScore(s,total,t1,t2,extcur,classint,note){
 
 await fetch(SCRIPT_URL,{
@@ -163,7 +322,10 @@ t1,t2,extcur,classint,note,total
 
 }
 
-/* LOAD STUDENTS */
+/* ===========================
+   LOAD STUDENTS
+=========================== */
+
 function loadStudents(){
 
 const cls=document.getElementById("classSelect").value;
