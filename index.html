@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,8 +19,9 @@ th{background:var(--blue);color:#fff;padding:10px;}
 td{border:1px solid #eee;padding:7px;text-align:center;}
 input[type=number]{width:60px;text-align:center;}
 .total-box{font-weight:700;color:#0d47a1;}
-.row-status{font-weight:700;}
 .invalid{background:#ffebee!important;border:2px solid #d32f2f!important;}
+.low-score{background:#ffebee;}
+.row-status{font-weight:700;}
 </style>
 </head>
 
@@ -35,16 +38,16 @@ input[type=number]{width:60px;text-align:center;}
 
 <button id="logoutBtn" class="hidden" onclick="location.reload()">LOGOUT</button>
 
+<!-- ================= TEACHER ================= -->
 <div id="teacherPortal" class="hidden">
 
 <h3>Teacher Portal — <span id="subjectLabel"></span></h3>
-
 <select id="classSelect"></select>
 
 <table>
 <thead>
 <tr>
-<th style="min-width:220px;">Student Name (Code)</th>
+<th>Student Name (Code)</th>
 <th>T1 (10)</th>
 <th>T2 (10)</th>
 <th>ExtCur (5)</th>
@@ -58,24 +61,43 @@ input[type=number]{width:60px;text-align:center;}
 </table>
 
 </div>
+
+<!-- ================= PRINCIPAL ================= -->
+<div id="principalPortal" class="hidden">
+
+<h3>Principal Dashboard</h3>
+
+<select id="pClass"></select>
+<input id="pSubject" placeholder="Subject (optional)">
+<button onclick="loadPrincipal()">Load Scores</button>
+
+<table>
+<thead>
+<tr>
+<th>Student</th>
+<th>Subject</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody id="principalBody"></tbody>
+</table>
+
+</div>
+
 </div>
 
 <script>
 
 /* ================= CONFIG ================= */
 
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbyTQ4LXbkILTha9MWwYcOkudL2mJP7avIWOhDWog_Vlml5d2K7r69JZd-d1Uk_Zi_mERA/exec";
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwl7qsMyvps4AFXsKoZvBRYhSzavjuZMRMy0aC_R3VC_gKTCIjXOkHUcPNppVgZ_DYDkg/exec";
 
-let TOKEN="";
-let activeStaff="";
-let allowedArm="";
-
-/* ===== SCORE LIMITS ===== */
+let TOKEN="",activeStaff="",allowedArm="";
 
 const SCORE_LIMITS={t1:10,t2:10,extcur:5,classint:5,note:10};
 
 /* ===== STUDENTS ===== */
-/* (KEEP YOUR FULL OBJECT HERE) */
+/* KEEP YOUR FULL DATABASE HERE */
 const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
@@ -86,6 +108,7 @@ const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
   "Senior 3": [{"n":"LAWRENCE ABASINEDUHE","c":"BOC1044"},{"n":"KAYODE ADEBIYI","c":"BOC988"},{"n":"OLUWANIFEMI ADESHINA","c":"BOC1076"},{"n":"OYINKANSOLA AKANNI","c":"BOC1075"},{"n":"TIMILEHIN AKINMUTIMI","c":"BOC1074"},{"n":"CONFIDENCE MONYE","c":"BOC1073"},{"n":"CHIAMAKA NWAJIOBIEME","c":"BOC979"},{"n":"OLAJIDE ODUGUWA","c":"BOC986"},{"n":"AYOMIDE OMOBUWA","c":"BOC980"},{"n":"EMMANUEL ONUDINMA","c":"BOC1005"},{"n":"AYOMIDE TAIWO","c":"BOC983"},{"n":"MELODY UFONDU","c":"BOC992"},{"n":"EMMANUEL YUSUF","c":"BOC1019"},{"n":"ALIYAH AKINDE","c":"BOC1112"},{"n":"CECILIA MICHAEL","c":"BOC1133"},{"n":"SAMUEL OGUNYOYE","c":"BOC1134"},{"n":"DANIEL RUNSEWE","c":"BOC1125"},{"n":"ONYEKACHUKWU NNAMDI","c":"BOC1130"},{"n":"OLUWAFIKAYOMI BADEJO","c":"BOC1137"},{"n":"MUBARAK ARIGBABUWO","c":"BOC1140"},{"n":"Awomodu Okikiola","c":"BOC1146"},{"n":"TAWA ADEKOYA","c":"BOC1081"},{"n":"Peculiar Oyebanji","c":"BOC1213"},{"n":"Iremide Oguntayo","c":"BOC1224"}]
 };
 
+
 /* ================= HELPERS ================= */
 
 function splitName(full){
@@ -93,27 +116,24 @@ const p=full.trim().split(" ");
 return {first:p.shift()||"",last:p.join(" ")};
 }
 
-function setRowStatus(tr,text,color){
+function setRowStatus(tr,t,c){
 const s=tr.querySelector(".row-status");
-s.textContent=text;
-s.style.color=color;
+s.textContent=t;s.style.color=c;
 }
 
 function validateRow(tr){
 let valid=true;
-for(const key in SCORE_LIMITS){
-const input=tr.querySelector("."+key);
-const max=SCORE_LIMITS[key];
-const v=Number(input.value||0);
-if(v<0||v>max){
-input.classList.add("invalid");
-input.title="Max allowed is "+max;
+for(const k in SCORE_LIMITS){
+const i=tr.querySelector("."+k);
+const v=+i.value||0;
+if(v<0||v>SCORE_LIMITS[k]){
+i.classList.add("invalid");
+i.title="Max "+SCORE_LIMITS[k];
 valid=false;
 }else{
-input.classList.remove("invalid");
-input.title="";
-}
-}
+i.classList.remove("invalid");
+i.title="";
+}}
 return valid;
 }
 
@@ -127,18 +147,12 @@ const pin=document.getElementById("staffPin").value.trim();
 
 const r=await fetch(SCRIPT_URL,{
 method:"POST",
-body:JSON.stringify({
-action:"login",
-pin:pin
-})
+body:JSON.stringify({action:"login",pin})
 });
 
 const d=await r.json();
 
-if(!d.ok){
-alert("Invalid PIN");
-return;
-}
+if(!d.ok){alert("Invalid PIN");return;}
 
 TOKEN=d.token;
 activeStaff=d.subject;
@@ -146,19 +160,24 @@ allowedArm=d.arm;
 
 document.getElementById("authSection").classList.add("hidden");
 document.getElementById("logoutBtn").classList.remove("hidden");
-document.getElementById("teacherPortal").classList.remove("hidden");
 
+if(allowedArm==="Master"){
+document.getElementById("principalPortal").classList.remove("hidden");
+loadPrincipalSelectors();
+return;
+}
+
+document.getElementById("teacherPortal").classList.remove("hidden");
 document.getElementById("subjectLabel").textContent=activeStaff;
 
 loadClasses();
 
 }catch(e){
-console.error(e);
-alert("Connection error. Check deployment.");
+alert("Connection error");
 }
 }
 
-/* ================= CLASSES ================= */
+/* ================= TEACHER ================= */
 
 function loadClasses(){
 
@@ -166,14 +185,12 @@ const sel=document.getElementById("classSelect");
 sel.innerHTML="";
 
 let c=[];
-
 if(allowedArm==="Junior") c=["Basic 7","Basic 8","Basic 9"];
 if(allowedArm==="Senior") c=["Senior 1","Senior 2","Senior 3"];
 
 c.forEach(x=>{
 const o=document.createElement("option");
-o.value=x;
-o.textContent=x;
+o.value=x;o.textContent=x;
 sel.appendChild(o);
 });
 
@@ -181,8 +198,6 @@ sel.onchange=loadStudents;
 sel.selectedIndex=0;
 loadStudents();
 }
-
-/* ================= FETCH ================= */
 
 async function fetchExisting(className){
 
@@ -200,31 +215,24 @@ const d=await r.json();
 return d.records||{};
 }
 
-/* ================= BUILD ROW ================= */
-
 function buildRow(student,saved){
 
-const nameParts=splitName(student.n);
+const n=splitName(student.n);
 const tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td style="text-align:left;">
-<b>${student.n}</b><br>
-<small>ID: ${student.c}</small>
-<input type="hidden" class="h-fname" value="${nameParts.first}">
-<input type="hidden" class="h-lname" value="${nameParts.last}">
-<input type="hidden" class="h-code" value="${student.c}">
+<td style="text-align:left"><b>${student.n}</b><br><small>ID:${student.c}</small>
+<input type=hidden class=h-fname value="${n.first}">
+<input type=hidden class=h-lname value="${n.last}">
+<input type=hidden class=h-code value="${student.c}">
 </td>
-
-<td><input type="number" class="t1"></td>
-<td><input type="number" class="t2"></td>
-<td><input type="number" class="extcur"></td>
-<td><input type="number" class="classint"></td>
-<td><input type="number" class="note"></td>
-
+<td><input type=number class=t1></td>
+<td><input type=number class=t2></td>
+<td><input type=number class=extcur></td>
+<td><input type=number class=classint></td>
+<td><input type=number class=note></td>
 <td><div class="row-total total-box">0.0</div></td>
-<td class="row-status">Ready</td>
-`;
+<td class=row-status>Ready</td>`;
 
 if(saved){
 tr.querySelector(".t1").value=saved.t1||0;
@@ -232,47 +240,30 @@ tr.querySelector(".t2").value=saved.t2||0;
 tr.querySelector(".extcur").value=saved.extcur||0;
 tr.querySelector(".classint").value=saved.classint||0;
 tr.querySelector(".note").value=saved.note||0;
-setRowStatus(tr,"Loaded","#2e7d32");
 }
 
 let editing=false;
 
 tr.querySelectorAll("input[type=number]").forEach(inp=>{
 
-inp.addEventListener("focus",()=>{
-editing=true;
-setRowStatus(tr,"Editing","#1565c0");
-});
+inp.onfocus=()=>{editing=true;setRowStatus(tr,"Editing","#1565c0");};
 
-inp.addEventListener("input",()=>{
+inp.oninput=()=>{
 updateTotal(tr);
-if(!validateRow(tr))
-setRowStatus(tr,"Error","#d32f2f");
-});
+if(!validateRow(tr)) setRowStatus(tr,"Error","#d32f2f");
+};
 
-inp.addEventListener("blur",()=>{
-setTimeout(async()=>{
+inp.onblur=()=>setTimeout(async()=>{
 if(!tr.contains(document.activeElement)&&editing){
-
 editing=false;
-
-if(!validateRow(tr)){
-setRowStatus(tr,"Error","#d32f2f");
-return;
-}
-
+if(!validateRow(tr)){setRowStatus(tr,"Error","#d32f2f");return;}
 await saveRow(tr);
-}
-},120);
-});
-
+}},120);
 });
 
 updateTotal(tr);
 return tr;
 }
-
-/* ================= TOTAL ================= */
 
 function updateTotal(tr){
 const t1=+tr.querySelector(".t1").value||0;
@@ -283,13 +274,9 @@ const n=+tr.querySelector(".note").value||0;
 tr.querySelector(".row-total").textContent=(t1+t2+e+c+n).toFixed(1);
 }
 
-/* ================= SAVE ================= */
-
 async function saveRow(tr){
 
-try{
-
-setRowStatus(tr,"Saving...","#f57c00");
+setRowStatus(tr,"Saving","#f57c00");
 
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
@@ -313,32 +300,62 @@ total:t1+t2+extcur+classint+note
 });
 
 const d=await r.json();
-
-if(!d.ok){
-setRowStatus(tr,"Error","#d32f2f");
-return;
+setRowStatus(tr,d.ok?"Saved":"Error",d.ok?"#2e7d32":"#d32f2f");
 }
-
-setRowStatus(tr,"Saved","#2e7d32");
-
-}catch(e){
-setRowStatus(tr,"Error","#d32f2f");
-}
-}
-
-/* ================= LOAD STUDENTS ================= */
 
 async function loadStudents(){
 
 const cls=document.getElementById("classSelect").value;
 const body=document.getElementById("studentTableBody");
-
 body.innerHTML="";
 
 const saved=await fetchExisting(cls);
 
 (studentDatabase[cls]||[]).forEach(s=>{
 body.appendChild(buildRow(s,saved[s.c]));
+});
+}
+
+/* ================= PRINCIPAL ================= */
+
+function loadPrincipalSelectors(){
+
+const sel=document.getElementById("pClass");
+Object.keys(studentDatabase).forEach(c=>{
+const o=document.createElement("option");
+o.value=c;o.textContent=c;
+sel.appendChild(o);
+});
+}
+
+async function loadPrincipal(){
+
+const cls=document.getElementById("pClass").value;
+const sub=document.getElementById("pSubject").value;
+
+const r=await fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify({
+action:"principal",
+token:TOKEN,
+className:cls,
+subject:sub
+})
+});
+
+const d=await r.json();
+
+const body=document.getElementById("principalBody");
+body.innerHTML="";
+
+(d.records||[]).forEach(x=>{
+
+const tr=document.createElement("tr");
+if(Number(x.total)<20) tr.classList.add("low-score");
+
+tr.innerHTML=`<td>${x.name}</td><td>${x.subject}</td><td>${x.total}</td>`;
+body.appendChild(tr);
+
 });
 }
 
