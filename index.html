@@ -16,9 +16,7 @@ table{width:100%;border-collapse:collapse;margin-top:10px;}
 th{background:var(--blue);color:#fff;padding:10px;}
 td{border:1px solid #eee;padding:7px;text-align:center;}
 input[type=number]{width:60px;text-align:center;}
-.editing-row{background:#e3f2fd!important;position:sticky;top:0;z-index:5;}
-.low-score{background:#ffebee!important;}
-.row-status{font-weight:700;}
+.total-box{font-weight:700;color:#0d47a1;}
 </style>
 </head>
 
@@ -35,45 +33,24 @@ input[type=number]{width:60px;text-align:center;}
 
 <button id="logoutBtn" class="hidden" onclick="location.reload()">LOGOUT</button>
 
-<!-- TEACHER -->
 <div id="teacherPortal" class="hidden">
 <h3>Teacher Portal — <span id="subjectLabel"></span></h3>
 
 <select id="classSelect"></select>
-<div id="syncStatus">Ready</div>
 
 <table>
 <thead>
 <tr>
-<th>Student</th>
-<th>T1</th><th>T2</th>
-<th>Ext</th><th>Class</th>
+<th style="min-width:220px;">Student (Code)</th>
+<th>T1</th>
+<th>T2</th>
+<th>Ext</th>
+<th>Class</th>
 <th>Note</th>
 <th>Total</th>
-<th>Status</th>
 </tr>
 </thead>
 <tbody id="studentTableBody"></tbody>
-</table>
-</div>
-
-<!-- PRINCIPAL -->
-<div id="principalPortal" class="hidden">
-<h3>Principal Dashboard</h3>
-
-<select id="pClass"></select>
-<input id="pSubject" placeholder="Subject">
-<button onclick="loadPrincipal()">Load Scores</button>
-
-<table>
-<thead>
-<tr>
-<th>Student</th>
-<th>Subject</th>
-<th>Total</th>
-</tr>
-</thead>
-<tbody id="principalBody"></tbody>
 </table>
 </div>
 
@@ -81,14 +58,16 @@ input[type=number]{width:60px;text-align:center;}
 
 <script>
 
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbxrtYtuCZ_dfOSSiYH5bQCT7te_R8n-epW_z_iveI3-n1r9sPa3co2tMmF_C-DIjU7BIw/exec";
+/* ================= CONFIG ================= */
 
-let activeStaff="",allowedArm="";
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbxB0_EeLx3Vm8wu64FAB1EGq2okxaGdisARMOIyUJyNgQFnup_WrVLJja_yOE27CZsfYw/exec";
 
-/* ======================
-   STUDENT DATABASE
-   PASTE FULL LIST HERE
-====================== */
+let TOKEN="";
+let activeStaff="";
+let allowedArm="";
+
+/* ================= SAMPLE STUDENTS ================= */
+/* PASTE YOUR FULL DATABASE HERE */
 const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
@@ -99,7 +78,29 @@ const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
   "Senior 3": [{"n":"LAWRENCE ABASINEDUHE","c":"BOC1044"},{"n":"KAYODE ADEBIYI","c":"BOC988"},{"n":"OLUWANIFEMI ADESHINA","c":"BOC1076"},{"n":"OYINKANSOLA AKANNI","c":"BOC1075"},{"n":"TIMILEHIN AKINMUTIMI","c":"BOC1074"},{"n":"CONFIDENCE MONYE","c":"BOC1073"},{"n":"CHIAMAKA NWAJIOBIEME","c":"BOC979"},{"n":"OLAJIDE ODUGUWA","c":"BOC986"},{"n":"AYOMIDE OMOBUWA","c":"BOC980"},{"n":"EMMANUEL ONUDINMA","c":"BOC1005"},{"n":"AYOMIDE TAIWO","c":"BOC983"},{"n":"MELODY UFONDU","c":"BOC992"},{"n":"EMMANUEL YUSUF","c":"BOC1019"},{"n":"ALIYAH AKINDE","c":"BOC1112"},{"n":"CECILIA MICHAEL","c":"BOC1133"},{"n":"SAMUEL OGUNYOYE","c":"BOC1134"},{"n":"DANIEL RUNSEWE","c":"BOC1125"},{"n":"ONYEKACHUKWU NNAMDI","c":"BOC1130"},{"n":"OLUWAFIKAYOMI BADEJO","c":"BOC1137"},{"n":"MUBARAK ARIGBABUWO","c":"BOC1140"},{"n":"Awomodu Okikiola","c":"BOC1146"},{"n":"TAWA ADEKOYA","c":"BOC1081"},{"n":"Peculiar Oyebanji","c":"BOC1213"},{"n":"Iremide Oguntayo","c":"BOC1224"}]
 };
 
-/* ===== LOGIN ===== */
+
+/* ================= HELPERS ================= */
+
+function escapeHtml(str){
+return String(str)
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function escapeAttr(str){ return escapeHtml(str); }
+
+function splitName(full){
+const parts=full.trim().split(" ");
+return {
+first:parts.shift()||"",
+last:parts.join(" ")
+};
+}
+
+/* ================= LOGIN ================= */
 
 async function verifyAccess(){
 
@@ -114,35 +115,33 @@ const d=await r.json();
 
 if(!d.ok){alert("Invalid PIN");return;}
 
-document.getElementById("authSection").classList.add("hidden");
-document.getElementById("logoutBtn").classList.remove("hidden");
-
+TOKEN=d.token;
 activeStaff=d.subject;
 allowedArm=d.arm;
 
-if(allowedArm==="Master"){
-document.getElementById("principalPortal").classList.remove("hidden");
-loadPrincipalSelectors();
-return;
-}
-
+document.getElementById("authSection").classList.add("hidden");
+document.getElementById("logoutBtn").classList.remove("hidden");
 document.getElementById("teacherPortal").classList.remove("hidden");
+
 document.getElementById("subjectLabel").textContent=activeStaff;
 
 loadClasses();
 }
 
-/* ===== CLASS LOADER ===== */
+/* ================= CLASSES ================= */
 
 function loadClasses(){
 
 const sel=document.getElementById("classSelect");
-sel.innerHTML='<option value="">Select Class</option>';
+sel.innerHTML="";
 
 let c=[];
 
-if(allowedArm==="Junior") c=["Basic 7","Basic 8","Basic 9"];
-if(allowedArm==="Senior") c=["Senior 1","Senior 2","Senior 3"];
+if(allowedArm==="Junior")
+c=["Basic 7","Basic 8","Basic 9"];
+
+if(allowedArm==="Senior")
+c=["Senior 1","Senior 2","Senior 3"];
 
 c.forEach(x=>{
 let o=document.createElement("option");
@@ -151,171 +150,148 @@ sel.appendChild(o);
 });
 
 sel.onchange=loadStudents;
+
+sel.selectedIndex=0;
+loadStudents();
 }
 
-/* ===== BUILD ROW ===== */
+/* ================= FETCH EXISTING ================= */
 
-function buildRow(s){
+async function fetchExisting(className){
+
+const r=await fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify({
+action:"fetch",
+token:TOKEN,
+className,
+subject:activeStaff
+})
+});
+
+const d=await r.json();
+return d.records||{};
+}
+
+/* ================= BUILD ROW ================= */
+
+function buildRow(student,saved){
+
+const name=student.n;
+const code=student.c;
+const nameParts=splitName(name);
 
 const tr=document.createElement("tr");
-tr.dataset.code=s.c;
 
 tr.innerHTML=`
-<td>${s.n}</td>
-<td><input class=t1 type=number></td>
-<td><input class=t2 type=number></td>
-<td><input class=extcur type=number></td>
-<td><input class=classint type=number></td>
-<td><input class=note type=number></td>
-<td class=row-total>0</td>
-<td class=row-status>Ready</td>`;
+<td style="text-align:left;">
+<span style="font-weight:700;color:#333;">
+${escapeHtml(name)}
+</span><br>
 
-let editing=false;
+<small style="color:#666;">
+ID: ${escapeHtml(code)}
+</small>
 
-tr.querySelectorAll("input").forEach(inp=>{
+<input type="hidden" class="h-fname"
+value="${escapeAttr(nameParts.first)}">
 
-inp.addEventListener("focus",()=>{
-editing=true;
-tr.classList.add("editing-row");
-setRowStatus(tr,"Editing","#1565c0");
-});
+<input type="hidden" class="h-lname"
+value="${escapeAttr(nameParts.last)}">
 
-inp.addEventListener("input",()=>updateTotal(tr));
+<input type="hidden" class="h-code"
+value="${escapeAttr(code)}">
+</td>
 
-inp.addEventListener("blur",()=>{
-setTimeout(async()=>{
-if(!tr.contains(document.activeElement)&&editing){
+<td><input type="number" class="t1" min="0" max="10"></td>
+<td><input type="number" class="t2" min="0" max="10"></td>
+<td><input type="number" class="extcur" min="0" max="10"></td>
+<td><input type="number" class="classint" min="0" max="5"></td>
+<td><input type="number" class="note" min="0" max="5"></td>
 
-editing=false;
-tr.classList.remove("editing-row");
+<td><div class="row-total total-box">0.0</div></td>
+`;
 
-if(!validateRow(tr)){
-setRowStatus(tr,"Invalid","#d32f2f");
-return;
+if(saved){
+tr.querySelector(".t1").value=saved.t1||0;
+tr.querySelector(".t2").value=saved.t2||0;
+tr.querySelector(".extcur").value=saved.extcur||0;
+tr.querySelector(".classint").value=saved.classint||0;
+tr.querySelector(".note").value=saved.note||0;
 }
 
-await saveRow(tr,s);
-}
-},120);
+tr.querySelectorAll("input[type=number]").forEach(inp=>{
+inp.oninput=()=>updateTotal(tr);
+inp.onblur=()=>saveRow(tr);
 });
 
-});
+updateTotal(tr);
 
 return tr;
 }
 
-/* ===== HELPERS ===== */
-
-function setRowStatus(tr,t,c){
-const x=tr.querySelector(".row-status");
-x.textContent=t;
-x.style.color=c;
-}
+/* ================= TOTAL ================= */
 
 function updateTotal(tr){
+
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
 const e=+tr.querySelector(".extcur").value||0;
 const c=+tr.querySelector(".classint").value||0;
 const n=+tr.querySelector(".note").value||0;
-tr.querySelector(".row-total").textContent=(t1+t2+e+c+n).toFixed(1);
+
+tr.querySelector(".row-total").textContent=
+(t1+t2+e+c+n).toFixed(1);
 }
 
-function validateRow(tr){
-const lim={t1:10,t2:10,extcur:5,classint:5,note:10};
-for(let k in lim){
-const v=+tr.querySelector("."+k).value||0;
-if(v>lim[k]) return false;
-}
-return true;
-}
+/* ================= SAVE ================= */
 
-/* ===== SAVE ===== */
+async function saveRow(tr){
 
-async function saveRow(tr,s){
+const fname=tr.querySelector(".h-fname").value;
+const lname=tr.querySelector(".h-lname").value;
+const code=tr.querySelector(".h-code").value;
 
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
 const extcur=+tr.querySelector(".extcur").value||0;
 const classint=+tr.querySelector(".classint").value||0;
 const note=+tr.querySelector(".note").value||0;
-const total=t1+t2+extcur+classint+note;
-
-setRowStatus(tr,"Saving","#f57c00");
 
 await fetch(SCRIPT_URL,{
 method:"POST",
 body:JSON.stringify({
 action:"save",
+token:TOKEN,
 className:document.getElementById("classSelect").value,
 subject:activeStaff,
-code:s.c,
-t1,t2,extcur,classint,note,total
+firstname:fname,
+lastname:lname,
+code,
+t1,t2,extcur,classint,note,
+total:t1+t2+extcur+classint+note
 })
 });
-
-setRowStatus(tr,"Saved","#2e7d32");
 }
 
-/* ===== LOAD STUDENTS ===== */
+/* ================= LOAD STUDENTS ================= */
 
-function loadStudents(){
+async function loadStudents(){
 
 const cls=document.getElementById("classSelect").value;
 const body=document.getElementById("studentTableBody");
 
 body.innerHTML="";
 
-(studentDatabase[cls]||[])
-.forEach(s=>body.appendChild(buildRow(s)));
-}
+const saved=await fetchExisting(cls);
 
-/* ===== PRINCIPAL ===== */
-
-function loadPrincipalSelectors(){
-
-const sel=document.getElementById("pClass");
-
-Object.keys(studentDatabase).forEach(c=>{
-let o=document.createElement("option");
-o.value=c;o.textContent=c;
-sel.appendChild(o);
-});
-}
-
-async function loadPrincipal(){
-
-const cls=document.getElementById("pClass").value;
-const sub=document.getElementById("pSubject").value;
-
-const r=await fetch(SCRIPT_URL,{
-method:"POST",
-body:JSON.stringify({
-action:"principal",
-className:cls,
-subject:sub
-})
-});
-
-const d=await r.json();
-
-const body=document.getElementById("principalBody");
-body.innerHTML="";
-
-(d.records||[]).forEach(x=>{
-
-const tr=document.createElement("tr");
-if(Number(x.total)<20) tr.classList.add("low-score");
-
-tr.innerHTML=`
-<td>${x.name}</td>
-<td>${x.subject}</td>
-<td>${x.total}</td>`;
-
-body.appendChild(tr);
+(studentDatabase[cls]||[]).forEach(s=>{
+body.appendChild(buildRow(s,saved[s.c]));
 });
 }
 
 </script>
+
 </body>
 </html>
+
