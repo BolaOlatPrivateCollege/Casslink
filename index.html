@@ -18,10 +18,7 @@ td{border:1px solid #eee;padding:7px;text-align:center;}
 input[type=number]{width:60px;text-align:center;}
 .total-box{font-weight:700;color:#0d47a1;}
 .row-status{font-weight:700;}
-.invalid{
-background:#ffebee !important;
-border:2px solid #d32f2f !important;
-}
+.invalid{background:#ffebee!important;border:2px solid #d32f2f!important;}
 </style>
 </head>
 
@@ -75,16 +72,10 @@ let allowedArm="";
 
 /* ===== SCORE LIMITS ===== */
 
-const SCORE_LIMITS={
-t1:10,
-t2:10,
-extcur:5,
-classint:5,
-note:10
-};
+const SCORE_LIMITS={t1:10,t2:10,extcur:5,classint:5,note:10};
 
-/* ===== STUDENTS (PASTE FULL LIST) ===== */
-
+/* ===== STUDENTS ===== */
+/* (KEEP YOUR FULL OBJECT HERE) */
 const studentDatabase = /* PASTE YOUR FULL OBJECT HERE EXACTLY */
 {
   "Basic 7": [{"n":"TAIWO OLUWASEUN","c":"BOC1226"},{"n":"KEHINDE OLUWASEUN","c":"BOC1227"},{"n":"FIYINFOLUWA JIMOH","c":"BOC1229"},{"n":"INIOLUWA WHINGAN","c":"BOC1230"},{"n":"AISHAT AHMED","c":"BOC1231"},{"n":"OREOLUWA BADEKALE","c":"BOC1234"},{"n":"VICTOR JAMES","c":"BOC1235"},{"n":"SELIM SAHEED","c":"BOC1237"},{"n":"EMMANUEL NWAMBA","c":"BOC1239"},{"n":"OLAMIDE JAMES","c":"BOC1240"},{"n":"ABDUL MUMEEN MUSA","c":"BOC1241"},{"n":"AL-MUBARAQ OLANREWAJU","c":"BOC1242"},{"n":"ABDUL-RAHMON MUTOHIR","c":"BOC1246"},{"n":"OLADEHINDE AKANNI","c":"BOC1247"},{"n":"AL-HAMIN IDOWU","c":"BOC1249"},{"n":"IREMIDE EMIOLA","c":"BOC1251"},{"n":"LIVINGSTONES JOHN-CHIDI","c":"BOC1252"},{"n":"IREWANDE JOSEPH","c":"BOC1256"},{"n":"RAMADAN BAKARE","c":"BOC1257"},{"n":"OLADUNSI OYEBOWALE","c":"BOC1258"},{"n":"OPEMIPO ALAUSA","c":"BOC1259"},{"n":"TEMIDOYIN AKINSEYE","c":"BOC1261"},{"n":"OLUWATIMILEYIN OMOBUWA","c":"BOC1263"},{"n":"DESTINY FOLORUNSHO","c":"BOC1264"},{"n":"OLAWUNMI OLAYIWOLA","c":"BOC1265"},{"n":"AKANNI EMMANUEL","c":"BOC1267"},{"n":"OLUWADARASIMI ALABI","c":"BOC1270"},{"n":"DAVID GBADEBO","c":"BOC1271"},{"n":"MOHAMMED ADESANYA","c":"BOC1272"},{"n":"FAREEDAH ADENEKAN","c":"BOC1273"},{"n":"KAMALIDEEN ODUKOYA","c":"BOC1274"},{"n":"Richard Adeboye","c":"BOC1276"},{"n":"Boluwatife Adeyemi","c":"BOC1277"},{"n":"Sarah Adebayo","c":"BOC1278"},{"n":"Okikiola Odutola","c":"BOC1279"},{"n":"Favour Joseph","c":"BOC1280"},{"n":"Emmanuella Federick","c":"BOC1281"}],
@@ -108,19 +99,13 @@ s.textContent=text;
 s.style.color=color;
 }
 
-/* ===== VALIDATION ===== */
-
 function validateRow(tr){
-
 let valid=true;
-
 for(const key in SCORE_LIMITS){
-
 const input=tr.querySelector("."+key);
 const max=SCORE_LIMITS[key];
 const v=Number(input.value||0);
-
-if(v<0 || v>max){
+if(v<0||v>max){
 input.classList.add("invalid");
 input.title="Max allowed is "+max;
 valid=false;
@@ -129,7 +114,6 @@ input.classList.remove("invalid");
 input.title="";
 }
 }
-
 return valid;
 }
 
@@ -143,9 +127,6 @@ const pin=document.getElementById("staffPin").value.trim();
 
 const r=await fetch(SCRIPT_URL,{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
 body:JSON.stringify({
 action:"login",
 pin:pin
@@ -172,6 +153,7 @@ document.getElementById("subjectLabel").textContent=activeStaff;
 loadClasses();
 
 }catch(e){
+console.error(e);
 alert("Connection error. Check deployment.");
 }
 }
@@ -185,11 +167,8 @@ sel.innerHTML="";
 
 let c=[];
 
-if(allowedArm==="Junior")
-c=["Basic 7","Basic 8","Basic 9"];
-
-if(allowedArm==="Senior")
-c=["Senior 1","Senior 2","Senior 3"];
+if(allowedArm==="Junior") c=["Basic 7","Basic 8","Basic 9"];
+if(allowedArm==="Senior") c=["Senior 1","Senior 2","Senior 3"];
 
 c.forEach(x=>{
 const o=document.createElement("option");
@@ -203,15 +182,12 @@ sel.selectedIndex=0;
 loadStudents();
 }
 
-/* ================= FETCH EXISTING ================= */
+/* ================= FETCH ================= */
 
 async function fetchExisting(className){
 
 const r=await fetch(SCRIPT_URL,{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
 body:JSON.stringify({
 action:"fetch",
 token:TOKEN,
@@ -229,14 +205,12 @@ return d.records||{};
 function buildRow(student,saved){
 
 const nameParts=splitName(student.n);
-
 const tr=document.createElement("tr");
 
 tr.innerHTML=`
 <td style="text-align:left;">
 <b>${student.n}</b><br>
 <small>ID: ${student.c}</small>
-
 <input type="hidden" class="h-fname" value="${nameParts.first}">
 <input type="hidden" class="h-lname" value="${nameParts.last}">
 <input type="hidden" class="h-code" value="${student.c}">
@@ -301,15 +275,12 @@ return tr;
 /* ================= TOTAL ================= */
 
 function updateTotal(tr){
-
 const t1=+tr.querySelector(".t1").value||0;
 const t2=+tr.querySelector(".t2").value||0;
 const e=+tr.querySelector(".extcur").value||0;
 const c=+tr.querySelector(".classint").value||0;
 const n=+tr.querySelector(".note").value||0;
-
-tr.querySelector(".row-total").textContent=
-(t1+t2+e+c+n).toFixed(1);
+tr.querySelector(".row-total").textContent=(t1+t2+e+c+n).toFixed(1);
 }
 
 /* ================= SAVE ================= */
@@ -328,9 +299,6 @@ const note=+tr.querySelector(".note").value||0;
 
 const r=await fetch(SCRIPT_URL,{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
 body:JSON.stringify({
 action:"save",
 token:TOKEN,
